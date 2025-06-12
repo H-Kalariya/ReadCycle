@@ -1,0 +1,2424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookSwap | Exchange Books with Readers Nearby</title>
+    <meta name="description" content="Exchange books with readers in your community. Save money, share knowledge, and meet fellow book lovers.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-dark: #3a5a8a;
+            --primary-light: #6b8cc0;
+            --secondary: #ff7e5f;
+            --secondary-dark: #e66a4d;
+            --accent: #6c63ff;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 5px 10px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 40px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.05);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-full: 9999px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+        }
+
+        h1 { font-size: 2.5rem; }
+        h2 { font-size: 2rem; }
+        h3 { font-size: 1.75rem; }
+        h4 { font-size: 1.5rem; }
+        h5 { font-size: 1.25rem; }
+        h6 { font-size: 1rem; }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
+
+        /* Layout */
+        .section {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--light-gray);
+            background-color: var(--light);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .card-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--light-gray);
+            background-color: var(--light);
+        }
+
+        /* Book item */
+        .book-item {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .book-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .book-cover {
+            height: 200px;
+            background-color: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            font-size: 3rem;
+        }
+
+        .book-details {
+            padding: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .book-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .book-author {
+            color: var(--gray);
+            margin-bottom: 0.75rem;
+        }
+
+        .book-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .book-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .book-meta-item i {
+            color: var(--primary);
+        }
+
+        .book-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+        @media (max-width: 992px) {
+            .grid-cols-4 { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-3, .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 576px) {
+            .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+        }
+
+        /* Navigation */
+        .navbar {
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-brand i {
+            color: var(--secondary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        .nav-link.btn {
+            padding: 0.5rem 1rem;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 5rem 0;
+            text-align: center;
+            margin-bottom: 3rem;
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+        }
+
+        /* Auth forms */
+        .auth-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .auth-body {
+            padding: 2rem;
+        }
+
+        .auth-footer {
+            text-align: center;
+            padding: 1rem;
+            background-color: var(--light);
+        }
+
+        .auth-toggle {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-toggle:hover {
+            text-decoration: underline;
+        }
+
+        /* User profile */
+        .user-profile {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+
+        .user-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-name {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .user-meta {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .user-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-meta-item i {
+            color: var(--primary);
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: var(--radius-full);
+        }
+
+        .badge-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .badge-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .badge-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .badge-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+
+        .badge-info {
+            background-color: var(--info);
+            color: white;
+        }
+
+        .badge-light {
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        .badge-dark {
+            background-color: var(--dark);
+            color: white;
+        }
+
+        /* Notification badge */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-with-badge {
+            position: relative;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--light-gray);
+        }
+
+        .empty-state-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .empty-state-description {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-dialog {
+            background-color: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(-50px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.show .modal-dialog {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            margin-bottom: 0;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-info {
+            background-color: rgba(23, 162, 184, 0.1);
+            border-left: 4px solid var(--info);
+            color: var(--info);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        /* Utility classes */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 1rem; }
+        .mt-4 { margin-top: 1.5rem; }
+        .mt-5 { margin-top: 3rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        .mb-5 { margin-bottom: 3rem; }
+        .p-3 { padding: 1rem; }
+        .p-4 { padding: 1.5rem; }
+        .p-5 { padding: 3rem; }
+        .rounded { border-radius: var(--radius-md); }
+        .rounded-lg { border-radius: var(--radius-lg); }
+        .shadow { box-shadow: var(--shadow-sm); }
+        .shadow-lg { box-shadow: var(--shadow-lg); }
+        .d-flex { display: flex; }
+        .align-items-center { align-items: center; }
+        .justify-content-between { justify-content: space-between; }
+        .w-100 { width: 100%; }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.25rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .user-profile {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .user-meta {
+                justify-content: center;
+            }
+            
+            .navbar-nav {
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero {
+                padding: 3rem 0;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .section {
+                padding: 1.5rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-group .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="#" class="navbar-brand">
+                <i class="fas fa-book-open"></i>
+                <span>BookSwap</span>
+            </a>
+            <div class="navbar-nav" id="authNav">
+                <a href="#" class="nav-link" onclick="showAuthSection('login')">Login</a>
+                <a href="#" class="nav-link" onclick="showAuthSection('signup')">Sign Up</a>
+            </div>
+            <div class="navbar-nav hidden" id="userNav">
+                <a href="#" class="nav-link" onclick="showSection('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="#" class="nav-link" onclick="showSection('addBookSection')"><i class="fas fa-plus-circle"></i> Add Book</a>
+                <a href="#" class="nav-link btn-with-badge" onclick="showSection('myBooksSection'); loadMyBooks()">
+                    <i class="fas fa-book"></i> My Books
+                    <span id="myBooksBadge" class="notification-badge hidden">0</span>
+                </a>
+                <a href="#" class="nav-link btn-with-badge" onclick="showSection('requestsSection'); loadRequests()">
+                    <i class="fas fa-exchange-alt"></i> Requests
+                    <span id="requestsBadge" class="notification-badge hidden">0</span>
+                </a>
+                <a href="#" class="nav-link btn btn-primary btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero hidden" id="heroSection">
+        <div class="container">
+            <h1 class="hero-title">Share the Joy of Reading</h1>
+            <p class="hero-subtitle">Exchange books with readers in your community. Save money, share knowledge, and meet fellow book lovers.</p>
+            <div class="btn-group">
+                <button class="btn btn-primary btn-lg" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add a Book</button>
+                <button class="btn btn-secondary btn-lg" onclick="showSection('availableBooksSection'); loadAvailableBooks()"><i class="fas fa-search"></i> Browse Books</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Authentication Section -->
+        <div id="authSection">
+            <div class="auth-container">
+                <!-- Login Form -->
+                <div class="auth-card" id="loginForm">
+                    <div class="auth-header">
+                        <h2>Welcome Back</h2>
+                        <p>Login to your BookSwap account</p>
+                    </div>
+                    <div class="auth-body">
+                        <div class="form-group">
+                            <label for="loginUsername" class="form-label">Username</label>
+                            <input type="text" id="loginUsername" class="form-control" placeholder="Enter your username">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <div class="password-container">
+                                <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password">
+                                <span class="toggle-password" onclick="togglePassword('loginPassword')"><i class="fas fa-eye"></i></span>
+                            </div>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="rememberMe">
+                            <label for="rememberMe" class="checkbox-label">Remember me</label>
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="loginUser()"><i class="fas fa-sign-in-alt"></i> Login</button>
+                    </div>
+                    <div class="auth-footer">
+                        <p>Don't have an account? <a href="#" class="auth-toggle" onclick="showAuthSection('signup')">Sign up here</a></p>
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div class="auth-card hidden" id="signupForm">
+                    <div class="auth-header">
+                        <h2>Join BookSwap</h2>
+                        <p>Create your free account</p>
+                    </div>
+                    <div class="auth-body">
+                        <div class="form-group">
+                            <label for="signupUsername" class="form-label">Username</label>
+                            <input type="text" id="signupUsername" class="form-control" placeholder="Choose a username">
+                        </div>
+                        <div class="form-group">
+                            <label for="signupEmail" class="form-label">Email</label>
+                            <input type="email" id="signupEmail" class="form-control" placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <div class="password-container">
+                                <input type="password" id="signupPassword" class="form-control" placeholder="Create a password">
+                                <span class="toggle-password" onclick="togglePassword('signupPassword')"><i class="fas fa-eye"></i></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                            <div class="password-container">
+                                <input type="password" id="signupConfirmPassword" class="form-control" placeholder="Confirm your password">
+                                <span class="toggle-password" onclick="togglePassword('signupConfirmPassword')"><i class="fas fa-eye"></i></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="signupName" class="form-label">Full Name</label>
+                            <input type="text" id="signupName" class="form-control" placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="signupPhone" class="form-label">Phone Number</label>
+                            <input type="tel" id="signupPhone" class="form-control" placeholder="Enter your phone number">
+                        </div>
+                        <div class="form-group">
+                            <label for="signupAddress" class="form-label">Address</label>
+                            <textarea id="signupAddress" class="form-control" placeholder="Enter your full address (street, city, state, pincode)"></textarea>
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="signupUser()"><i class="fas fa-user-plus"></i> Sign Up</button>
+                    </div>
+                    <div class="auth-footer">
+                        <p>Already have an account? <a href="#" class="auth-toggle" onclick="showAuthSection('login')">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section hidden">
+            <div class="section-header">
+                <h2>Dashboard</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add Book</button>
+                    <button class="btn btn-outline" onclick="showSection('availableBooksSection'); loadAvailableBooks()"><i class="fas fa-search"></i> Browse Books</button>
+                </div>
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <h3 class="user-name" id="currentUser"></h3>
+                    <div class="user-meta">
+                        <div class="user-meta-item">
+                            <i class="fas fa-coins"></i>
+                            <span>Credits: <strong id="userCredits">10</strong></span>
+                        </div>
+                        <div class="user-meta-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Active Exchanges: <strong id="activeExchanges">0</strong></span>
+                        </div>
+                        <div class="user-meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Location: <strong id="userLocation">Loading...</strong></span>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm" onclick="showSection('myBooksSection'); loadMyBooks()"><i class="fas fa-book"></i> View My Books</button>
+                        <button class="btn btn-secondary btn-sm" onclick="showSection('requestsSection'); loadRequests()"><i class="fas fa-exchange-alt"></i> View Requests</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Recent Activity</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <h5 class="empty-state-title">No Recent Activity</h5>
+                            <p class="empty-state-description">Your recent exchanges and requests will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Quick Actions</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group">
+                            <button class="btn btn-outline" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add Book</button>
+                            <button class="btn btn-outline" onclick="showSection('availableBooksSection'); loadAvailableBooks()"><i class="fas fa-search"></i> Browse Books</button>
+                            <button class="btn btn-outline" onclick="showSection('myBooksSection'); loadMyBooks()"><i class="fas fa-book"></i> My Books</button>
+                            <button class="btn btn-outline" onclick="showSection('requestsSection'); loadRequests()"><i class="fas fa-exchange-alt"></i> Requests</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Book Section -->
+        <div id="addBookSection" class="section hidden">
+            <div class="section-header">
+                <h2>Add Your Book</h2>
+                <button class="btn btn-outline" onclick="showSection('dashboard')"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="bookTitle" class="form-label">Title</label>
+                <input type="text" id="bookTitle" class="form-control" placeholder="Book Title">
+            </div>
+            <div class="form-group">
+                <label for="bookAuthor" class="form-label">Author</label>
+                <input type="text" id="bookAuthor" class="form-control" placeholder="Author">
+            </div>
+            <div class="form-group">
+                <label for="bookGenre" class="form-label">Genre</label>
+                <select id="bookGenre" class="form-control form-select">
+                    <option value="">Select Genre</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Non-Fiction">Non-Fiction</option>
+                    <option value="Mystery">Mystery</option>
+                    <option value="Romance">Romance</option>
+                    <option value="Sci-Fi">Science Fiction</option>
+                    <option value="Fantasy">Fantasy</option>
+                    <option value="Biography">Biography</option>
+                    <option value="History">History</option>
+                    <option value="Educational">Educational</option>
+                    <option value="Children">Children's</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bookCondition" class="form-label">Condition</label>
+                <select id="bookCondition" class="form-control form-select">
+                    <option value="">Select Condition</option>
+                    <option value="New">New</option>
+                    <option value="Like New">Like New</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Poor">Poor</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bookDescription" class="form-label">Description (Optional)</label>
+                <textarea id="bookDescription" class="form-control" placeholder="Book description (optional)"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="addBook()"><i class="fas fa-plus"></i> Add Book</button>
+        </div>
+
+        <!-- Available Books Section -->
+        <div id="availableBooksSection" class="section hidden">
+            <div class="section-header">
+                <h2>Available Books</h2>
+                <button class="btn btn-outline" onclick="showSection('dashboard')"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="searchQuery" class="form-label">Search</label>
+                        <input type="text" id="searchQuery" class="form-control" placeholder="Search books by title or author...">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-group">
+                            <label for="genreFilter" class="form-label">Genre</label>
+                            <select id="genreFilter" class="form-control form-select">
+                                <option value="">All Genres</option>
+                                <option value="Fiction">Fiction</option>
+                                <option value="Non-Fiction">Non-Fiction</option>
+                                <option value="Mystery">Mystery</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Sci-Fi">Science Fiction</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Biography">Biography</option>
+                                <option value="History">History</option>
+                                <option value="Educational">Educational</option>
+                                <option value="Children">Children's</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="locationSort" class="form-label">Sort By</label>
+                            <select id="locationSort" class="form-control form-select">
+                                <option value="distance">Distance (nearest first)</option>
+                                <option value="city">City</option>
+                                <option value="pincode">Pincode</option>
+                                <option value="recent">Most Recent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="distanceFilter" class="form-label">Distance</label>
+                            <select id="distanceFilter" class="form-control form-select">
+                                <option value="all">All Locations</option>
+                                <option value="5">Within 5 km</option>
+                                <option value="10">Within 10 km</option>
+                                <option value="20">Within 20 km</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="btn-group mt-3">
+                        <button class="btn btn-primary" onclick="searchBooks()"><i class="fas fa-search"></i> Search</button>
+                        <button class="btn btn-outline" onclick="clearSearch()"><i class="fas fa-times"></i> Clear</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="booksList">
+                <div class="empty-state">
+                    <i class="fas fa-book-open"></i>
+                    <h5 class="empty-state-title">No Books Loaded</h5>
+                    <p class="empty-state-description">Browse available books or adjust your search criteria.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Books Section -->
+        <div id="myBooksSection" class="section hidden">
+            <div class="section-header">
+                <h2>My Books</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="showSection('dashboard')"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+                    <button class="btn btn-primary" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add Book</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="myBooksList">
+                <div class="empty-state">
+                    <i class="fas fa-book"></i>
+                    <h5 class="empty-state-title">You haven't added any books yet</h5>
+                    <p class="empty-state-description">Start by adding your first book to share with the community.</p>
+                    <button class="btn btn-primary mt-3" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add Book</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exchange Requests Section -->
+        <div id="requestsSection" class="section hidden">
+            <div class="section-header">
+                <h2>Exchange Requests</h2>
+                <button class="btn btn-outline" onclick="showSection('dashboard')"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4><i class="fas fa-inbox"></i> Received Requests</h4>
+                </div>
+                <div class="card-body" id="receivedRequests">
+                    <div class="empty-state">
+                        <i class="fas fa-envelope-open"></i>
+                        <h5 class="empty-state-title">No Received Requests</h5>
+                        <p class="empty-state-description">Requests for your books will appear here when others request them.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-paper-plane"></i> Sent Requests</h4>
+                </div>
+                <div class="card-body" id="sentRequests">
+                    <div class="empty-state">
+                        <i class="fas fa-envelope"></i>
+                        <h5 class="empty-state-title">No Sent Requests</h5>
+                        <p class="empty-state-description">Browse available books to send your first request!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Exchanges Section -->
+        <div id="exchangesSection" class="section hidden">
+            <div class="section-header">
+                <h2>Active Exchanges</h2>
+                <button class="btn btn-outline" onclick="showSection('dashboard')"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4" id="activeExchangesList">
+                <div class="empty-state">
+                    <i class="fas fa-exchange-alt"></i>
+                    <h5 class="empty-state-title">No Active Exchanges</h5>
+                    <p class="empty-state-description">Start by requesting books or accepting requests from others.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Accept Request Modal -->
+    <div class="modal" id="acceptModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Accept Exchange Request</h3>
+                <button class="modal-close" onclick="cancelAccept()">&times;</button>
+            </div>
+            <div class="modal-body" id="acceptModalContent">
+                <div class="alert alert-info">
+                    <p>Please arrange the exchange details with the requester.</p>
+                </div>
+                <div class="form-group">
+                    <label for="exchangeAddress" class="form-label">Exchange Address</label>
+                    <textarea id="exchangeAddress" class="form-control" placeholder="Where should the exchange take place?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="pickupTime" class="form-label">Pickup Time</label>
+                    <input type="datetime-local" id="pickupTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="exchangeDuration" class="form-label">Exchange Duration</label>
+                    <select id="exchangeDuration" class="form-control form-select">
+                        <option value="7">7 days (1 credit)</option>
+                        <option value="14">14 days (2 credits)</option>
+                        <option value="30">30 days (3 credits)</option>
+                        <option value="60">60 days (5 credits)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="cancelAccept()">Cancel</button>
+                <button class="btn btn-success" onclick="confirmAccept()"><i class="fas fa-check"></i> Confirm Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white p-4 mt-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="text-white">BookSwap</h3>
+                    <p>Share the joy of reading with your community</p>
+                </div>
+                <div>
+                    <p>&copy; 2023 BookSwap. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize EmailJS (replace with your actual EmailJS credentials)
+        (function() {
+            emailjs.init("YOUR_EMAILJS_USER_ID"); // Replace with your EmailJS user ID
+        })();
+
+        // Data storage with localStorage
+        let users = JSON.parse(localStorage.getItem('bookExchangeUsers')) || {};
+        let books = JSON.parse(localStorage.getItem('bookExchangeBooks')) || {};
+        let requests = JSON.parse(localStorage.getItem('bookExchangeRequests')) || {};
+        let exchanges = JSON.parse(localStorage.getItem('bookExchangeExchanges')) || {};
+        let currentUserId = localStorage.getItem('currentUserId') || null;
+        let bookIdCounter = parseInt(localStorage.getItem('bookIdCounter')) || 1;
+        let requestIdCounter = parseInt(localStorage.getItem('requestIdCounter')) || 1;
+        let exchangeIdCounter = parseInt(localStorage.getItem('exchangeIdCounter')) || 1;
+        let pendingAcceptRequest = null;
+        let userLocation = null;
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('bookExchangeUsers', JSON.stringify(users));
+            localStorage.setItem('bookExchangeBooks', JSON.stringify(books));
+            localStorage.setItem('bookExchangeRequests', JSON.stringify(requests));
+            localStorage.setItem('bookExchangeExchanges', JSON.stringify(exchanges));
+            localStorage.setItem('bookIdCounter', bookIdCounter.toString());
+            localStorage.setItem('requestIdCounter', requestIdCounter.toString());
+            localStorage.setItem('exchangeIdCounter', exchangeIdCounter.toString());
+            localStorage.setItem('currentUserId', currentUserId);
+        }
+
+        // Initialize the page
+        function init() {
+            // Check if user is remembered
+            const rememberMe = localStorage.getItem('rememberMe') === 'true';
+            if (rememberMe && currentUserId) {
+                document.getElementById('currentUser').textContent = users[currentUserId].username;
+                document.getElementById('userCredits').textContent = users[currentUserId].credits;
+                updateActiveExchangesCount();
+                
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('heroSection').classList.remove('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('authNav').classList.add('hidden');
+                document.getElementById('userNav').classList.remove('hidden');
+                
+                // Set remembered username
+                document.getElementById('loginUsername').value = localStorage.getItem('rememberedUsername') || '';
+                document.getElementById('rememberMe').checked = rememberMe;
+                
+                // Update user location display
+                updateUserLocationDisplay();
+            } else {
+                showAuthSection('login');
+            }
+            
+            // Update notification badges
+            updateNotificationBadges();
+        }
+
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = field.nextElementSibling.querySelector('i');
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function showAuthSection(section) {
+            if (section === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('signupForm').classList.add('hidden');
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('signupForm').classList.remove('hidden');
+            }
+        }
+
+        function signupUser() {
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+            const name = document.getElementById('signupName').value.trim();
+            const phone = document.getElementById('signupPhone').value.trim();
+            const address = document.getElementById('signupAddress').value.trim();
+            
+            if (!username || !email || !password || !confirmPassword || !name || !phone || !address) {
+                showAlert('Please fill in all fields', 'danger');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match', 'danger');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters', 'danger');
+                return;
+            }
+            
+            // Check if username already exists
+            for (let id in users) {
+                if (users[id].username === username) {
+                    showAlert('Username already exists. Please choose a different one.', 'danger');
+                    return;
+                }
+                if (users[id].email === email) {
+                    showAlert('Email already registered. Please use a different email.', 'danger');
+                    return;
+                }
+            }
+            
+            const userId = 'user' + Date.now();
+            users[userId] = {
+                username,
+                email,
+                password,
+                name,
+                phone,
+                address,
+                credits: 10,
+                joinDate: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+            };
+            
+            // Save to localStorage
+            saveData();
+            
+            showAlert('Account created successfully! Please login.', 'success');
+            showAuthSection('login');
+            
+            // Clear signup form
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupConfirmPassword').value = '';
+            document.getElementById('signupName').value = '';
+            document.getElementById('signupPhone').value = '';
+            document.getElementById('signupAddress').value = '';
+        }
+
+        function loginUser() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!username || !password) {
+                showAlert('Please enter both username and password', 'danger');
+                return;
+            }
+            
+            // Find user
+            let userId = null;
+            for (let id in users) {
+                if (users[id].username === username && users[id].password === password) {
+                    userId = id;
+                    break;
+                }
+            }
+            
+            if (!userId) {
+                showAlert('Invalid username or password', 'danger');
+                return;
+            }
+            
+            currentUserId = userId;
+            users[userId].lastLogin = new Date().toISOString();
+            
+            document.getElementById('currentUser').textContent = users[userId].username;
+            document.getElementById('userCredits').textContent = users[userId].credits;
+            updateActiveExchangesCount();
+            
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('heroSection').classList.remove('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('authNav').classList.add('hidden');
+            document.getElementById('userNav').classList.remove('hidden');
+            
+            // Remember user if requested
+            localStorage.setItem('rememberMe', rememberMe.toString());
+            if (rememberMe) {
+                localStorage.setItem('rememberedUsername', username);
+            } else {
+                localStorage.removeItem('rememberedUsername');
+            }
+            
+            // Save data
+            saveData();
+            
+            // Clear login form
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            
+            // Update user location display
+            updateUserLocationDisplay();
+            
+            showAlert(`Welcome back, ${users[userId].name}!`, 'success');
+        }
+
+        function addBook() {
+            const title = document.getElementById('bookTitle').value.trim();
+            const author = document.getElementById('bookAuthor').value.trim();
+            const genre = document.getElementById('bookGenre').value;
+            const condition = document.getElementById('bookCondition').value;
+            const description = document.getElementById('bookDescription').value.trim();
+            
+            if (!title || !author || !genre || !condition) {
+                showAlert('Please fill in all required fields', 'danger');
+                return;
+            }
+            
+            const bookId = bookIdCounter++;
+            books[bookId] = {
+                id: bookId,
+                title,
+                author,
+                genre,
+                condition,
+                description,
+                owner: currentUserId,
+                available: true,
+                addedDate: new Date().toISOString(),
+                location: users[currentUserId].address
+            };
+            
+            // Save data
+            saveData();
+            
+            // Clear form
+            document.getElementById('bookTitle').value = '';
+            document.getElementById('bookAuthor').value = '';
+            document.getElementById('bookGenre').value = '';
+            document.getElementById('bookCondition').value = '';
+            document.getElementById('bookDescription').value = '';
+            
+            showAlert('Book added successfully!', 'success');
+            
+            // Update notification badge
+            updateNotificationBadges();
+            
+            // Show the book in My Books section
+            loadMyBooks();
+        }
+
+        function loadAvailableBooks() {
+            const booksList = document.getElementById('booksList');
+            booksList.innerHTML = '';
+            
+            let availableBooks = [];
+            for (let bookId in books) {
+                const book = books[bookId];
+                // Only show books that are available AND not currently in any active exchange
+                if (book.available && book.owner !== currentUserId && !isBookInActiveExchange(bookId)) {
+                    availableBooks.push(book);
+                }
+            }
+            
+            // Apply sorting and filtering
+            const sortOption = document.getElementById('locationSort').value;
+            const distanceFilter = parseInt(document.getElementById('distanceFilter').value);
+            
+            availableBooks = sortBooks(availableBooks, sortOption);
+            availableBooks = filterBooksByDistance(availableBooks, distanceFilter);
+            
+            if (availableBooks.length === 0) {
+                booksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-book-open"></i>
+                        <h5 class="empty-state-title">No books available</h5>
+                        <p class="empty-state-description">No books matching your criteria. Try adjusting your filters.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            availableBooks.forEach(book => {
+                const bookDiv = createBookElement(book, true);
+                booksList.appendChild(bookDiv);
+            });
+        }
+
+        function sortBooks(books, sortOption) {
+            return books.sort((a, b) => {
+                switch(sortOption) {
+                    case 'city':
+                        const cityA = extractCity(a.location);
+                        const cityB = extractCity(b.location);
+                        return cityA.localeCompare(cityB);
+                    case 'pincode':
+                        const pincodeA = extractPincode(a.location);
+                        const pincodeB = extractPincode(b.location);
+                        return pincodeA.localeCompare(pincodeB);
+                    case 'recent':
+                        return new Date(b.addedDate) - new Date(a.addedDate);
+                    case 'distance':
+                    default:
+                        // For demonstration, we'll calculate a random distance
+                        const distA = Math.floor(Math.random() * 20);
+                        const distB = Math.floor(Math.random() * 20);
+                        return distA - distB;
+                }
+            });
+        }
+        
+        function filterBooksByDistance(books, maxDistance) {
+            if (maxDistance === 0 || isNaN(maxDistance)) return books;
+            
+            return books.filter(book => {
+                // For demonstration, assign a random distance
+                const distance = Math.floor(Math.random() * 30);
+                return distance <= maxDistance;
+            });
+        }
+        
+        function extractCity(address) {
+            // Simple extraction - assume city is the second to last part
+            const parts = address.split(',').map(p => p.trim());
+            return parts.length > 1 ? parts[parts.length - 2] : address;
+        }
+        
+        function extractPincode(address) {
+            // Simple extraction - assume pincode is the last part
+            const parts = address.split(',').map(p => p.trim());
+            return parts.length > 0 ? parts[parts.length - 1] : address;
+        }
+
+        function isBookInActiveExchange(bookId) {
+            for (let exchangeId in exchanges) {
+                const exchange = exchanges[exchangeId];
+                if (exchange.bookId == bookId && exchange.status === 'active') {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function loadMyBooks() {
+            const myBooksList = document.getElementById('myBooksList');
+            myBooksList.innerHTML = '';
+            
+            let bookCount = 0;
+            for (let bookId in books) {
+                const book = books[bookId];
+                if (book.owner === currentUserId) {
+                    bookCount++;
+                    const bookDiv = createBookElement(book, false);
+                    myBooksList.appendChild(bookDiv);
+                }
+            }
+            
+            if (bookCount === 0) {
+                myBooksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-book"></i>
+                        <h5 class="empty-state-title">You haven't added any books yet</h5>
+                        <p class="empty-state-description">Start by adding your first book to share with the community.</p>
+                        <button class="btn btn-primary mt-3" onclick="showSection('addBookSection')"><i class="fas fa-plus"></i> Add Book</button>
+                    </div>
+                `;
+            }
+        }
+
+        function createBookElement(book, showRequestButton) {
+            const div = document.createElement('div');
+            div.className = 'card book-item';
+            
+            const owner = users[book.owner];
+            const city = extractCity(book.location);
+            const pincode = extractPincode(book.location);
+            const distance = Math.floor(Math.random() * 20); // For demo
+            
+            // Generate a simple book cover based on title
+            const firstLetter = book.title.charAt(0).toUpperCase();
+            const colors = ['#4a6fa5', '#6c63ff', '#ff7e5f', '#28a745', '#6f42c1'];
+            const color = colors[firstLetter.charCodeAt(0) % colors.length];
+            
+            div.innerHTML = `
+                <div class="book-cover" style="background-color: ${color}; color: white;">
+                    ${firstLetter}
+                </div>
+                <div class="book-details">
+                    <h4 class="book-title">${book.title}</h4>
+                    <p class="book-author">by ${book.author}</p>
+                    
+                    <div class="book-meta">
+                        <span class="book-meta-item"><i class="fas fa-bookmark"></i> ${book.genre}</span>
+                        <span class="book-meta-item"><i class="fas fa-star"></i> ${book.condition}</span>
+                        <span class="book-meta-item"><i class="fas fa-user"></i> ${owner.username}</span>
+                        <span class="book-meta-item"><i class="fas fa-map-marker-alt"></i> ${distance} km</span>
+                    </div>
+                    
+                    ${book.description ? `<p class="mb-3">${book.description}</p>` : ''}
+                    
+                    <div class="book-actions">
+                        ${showRequestButton && book.available && !isBookInActiveExchange(book.id) ? 
+                            `<button class="btn btn-primary btn-sm" onclick="requestBook(${book.id})"><i class="fas fa-exchange-alt"></i> Request</button>` : ''}
+                        ${!showRequestButton ? `
+                            <button class="btn btn-outline btn-sm" onclick="toggleBookAvailability(${book.id})">
+                                <i class="fas ${book.available ? 'fa-lock-open' : 'fa-lock'}"></i> ${book.available ? 'Make Unavailable' : 'Make Available'}
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="showBookDetails(${book.id})">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function showBookDetails(bookId) {
+            const book = books[bookId];
+            const owner = users[book.owner];
+            
+            // In a real app, this would show a detailed modal view
+            alert(`Book Details:\n\nTitle: ${book.title}\nAuthor: ${book.author}\nGenre: ${book.genre}\nCondition: ${book.condition}\nOwner: ${owner.name} (${owner.username})\n\nDescription: ${book.description || 'No description provided'}`);
+        }
+
+        function requestBook(bookId) {
+            const book = books[bookId];
+            const currentUserCredits = users[currentUserId].credits;
+            
+            if (currentUserCredits < 1) {
+                showAlert('Insufficient credits to request a book exchange', 'danger');
+                return;
+            }
+            
+            // Check if request already exists
+            for (let reqId in requests) {
+                const req = requests[reqId];
+                if (req.bookId === bookId && req.requesterId === currentUserId && req.status === 'pending') {
+                    showAlert('You already have a pending request for this book', 'warning');
+                    return;
+                }
+            }
+            
+            const requestId = requestIdCounter++;
+            requests[requestId] = {
+                id: requestId,
+                bookId: bookId,
+                requesterId: currentUserId,
+                ownerId: book.owner,
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            };
+            
+            // Save data
+            saveData();
+            
+            // Send notification email
+            sendEmailNotification(
+                users[book.owner].email,
+                "New Book Exchange Request",
+                `You have a new exchange request for your book "${book.title}" from ${users[currentUserId].name}.`,
+                {
+                    book_title: book.title,
+                    requester_name: users[currentUserId].name,
+                    requester_email: users[currentUserId].email,
+                    requester_phone: users[currentUserId].phone
+                }
+            );
+            
+            showAlert('Exchange request sent! The owner has been notified.', 'success');
+            
+            // Update notification badges
+            updateNotificationBadges();
+            
+            // Update the sent requests list
+            loadRequests();
+        }
+
+        function loadRequests() {
+            loadReceivedRequests();
+            loadSentRequests();
+        }
+
+        function loadReceivedRequests() {
+            const receivedDiv = document.getElementById('receivedRequests');
+            receivedDiv.innerHTML = '';
+            
+            let hasRequests = false;
+            for (let reqId in requests) {
+                const request = requests[reqId];
+                if (request.ownerId === currentUserId) {
+                    hasRequests = true;
+                    const requestDiv = createRequestElement(request, true);
+                    receivedDiv.appendChild(requestDiv);
+                }
+            }
+            
+            if (!hasRequests) {
+                receivedDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-envelope-open"></i>
+                        <h5 class="empty-state-title">No Received Requests</h5>
+                        <p class="empty-state-description">Requests for your books will appear here when others request them.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function loadSentRequests() {
+            const sentDiv = document.getElementById('sentRequests');
+            sentDiv.innerHTML = '';
+            
+            let hasRequests = false;
+            for (let reqId in requests) {
+                const request = requests[reqId];
+                if (request.requesterId === currentUserId) {
+                    hasRequests = true;
+                    const requestDiv = createRequestElement(request, false);
+                    sentDiv.appendChild(requestDiv);
+                }
+            }
+            
+            if (!hasRequests) {
+                sentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-envelope"></i>
+                        <h5 class="empty-state-title">No Sent Requests</h5>
+                        <p class="empty-state-description">Browse available books to send your first request!</p>
+                    </div>
+                `;
+            }
+        }
+
+        function createRequestElement(request, isReceived) {
+            const div = document.createElement('div');
+            div.className = 'card mb-3';
+            
+            const book = books[request.bookId];
+            const requester = users[request.requesterId];
+            const owner = users[request.ownerId];
+            const city = extractCity(isReceived ? requester.address : owner.address);
+            const pincode = extractPincode(isReceived ? requester.address : owner.address);
+            const date = new Date(request.timestamp).toLocaleDateString();
+            
+            let statusBadge;
+            if (request.status === 'pending') {
+                statusBadge = '<span class="badge badge-warning">Pending</span>';
+            } else if (request.status === 'accepted') {
+                statusBadge = '<span class="badge badge-success">Accepted</span>';
+            } else {
+                statusBadge = '<span class="badge badge-danger">Rejected</span>';
+            }
+            
+            div.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">${book.title}</h5>
+                        ${statusBadge}
+                    </div>
+                    <p class="text-muted mb-2">by ${book.author}</p>
+                    
+                    <div class="d-flex gap-3 mb-3">
+                        <div>
+                            <small class="text-muted">${isReceived ? 'Requested by' : 'Requested from'}</small>
+                            <p>${isReceived ? requester.name : owner.name}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Location</small>
+                            <p>${city}, ${pincode}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Date</small>
+                            <p>${date}</p>
+                        </div>
+                    </div>
+                    
+                    ${isReceived && request.status === 'pending' ? `
+                        <div class="btn-group">
+                            <button class="btn btn-success btn-sm" onclick="showAcceptModal(${request.id})"><i class="fas fa-check"></i> Accept</button>
+                            <button class="btn btn-danger btn-sm" onclick="respondToRequest(${request.id}, 'rejected')"><i class="fas fa-times"></i> Reject</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function showAcceptModal(requestId) {
+            const request = requests[requestId];
+            const book = books[request.bookId];
+            const requester = users[request.requesterId];
+            
+            pendingAcceptRequest = requestId;
+            
+            const modalContent = document.getElementById('acceptModalContent');
+            modalContent.innerHTML = `
+                <div class="alert alert-info">
+                    <p>Please arrange the exchange details with ${requester.name}.</p>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-2">Exchange Details</h5>
+                        <p><strong>Book:</strong> ${book.title} by ${book.author}</p>
+                        <p><strong>Requester:</strong> ${requester.name} (${requester.username})</p>
+                        <p><strong>Contact:</strong> ${requester.phone}</p>
+                        <p><strong>Address:</strong> ${requester.address}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Set default exchange address to user's address
+            document.getElementById('exchangeAddress').value = users[currentUserId].address;
+            
+            // Set default pickup time to tomorrow at 2pm
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(14, 0, 0, 0);
+            document.getElementById('pickupTime').value = tomorrow.toISOString().slice(0, 16);
+            
+            // Show modal
+            document.getElementById('acceptModal').classList.add('show');
+        }
+
+        function confirmAccept() {
+            const exchangeAddress = document.getElementById('exchangeAddress').value.trim();
+            const pickupTime = document.getElementById('pickupTime').value;
+            const duration = parseInt(document.getElementById('exchangeDuration').value);
+            
+            if (!exchangeAddress || !pickupTime) {
+                showAlert('Please fill in all exchange details', 'danger');
+                return;
+            }
+            
+            const request = requests[pendingAcceptRequest];
+            const book = books[request.bookId];
+            const requester = users[request.requesterId];
+            const owner = users[request.ownerId];
+            
+            // Calculate credits based on duration
+            const creditsRequired = duration <= 7 ? 1 : duration <= 14 ? 2 : duration <= 30 ? 3 : 5;
+            
+            if (requester.credits < creditsRequired) {
+                showAlert(`Requester doesn't have enough credits (${creditsRequired} required for ${duration} days)`, 'danger');
+                return;
+            }
+            
+            // Create exchange record
+            const exchangeId = exchangeIdCounter++;
+            const startDate = new Date();
+            const endDate = new Date(startDate.getTime() + (duration * 24 * 60 * 60 * 1000));
+            
+            exchanges[exchangeId] = {
+                id: exchangeId,
+                bookId: request.bookId,
+                ownerId: request.ownerId,
+                borrowerId: request.requesterId,
+                exchangeAddress: exchangeAddress,
+                pickupTime: pickupTime,
+                duration: duration,
+                creditsUsed: creditsRequired,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                status: 'active',
+                returnReference: `EXC-${exchangeId}-${Date.now().toString().slice(-6)}`
+            };
+            
+            // Update request status
+            request.status = 'accepted';
+            
+            // Update credits
+            requester.credits -= creditsRequired;
+            owner.credits += creditsRequired;
+            
+            // Mark book as unavailable
+            book.available = false;
+            
+            // Save data
+            saveData();
+            
+            // Update UI
+            document.getElementById('userCredits').textContent = users[currentUserId].credits;
+            updateActiveExchangesCount();
+            
+            // Send notification emails
+            sendEmailNotification(
+                requester.email,
+                "Book Exchange Accepted",
+                `Your request for "${book.title}" has been accepted! Exchange details:\n\n` +
+                `Address: ${exchangeAddress}\n` +
+                `Pickup Time: ${new Date(pickupTime).toLocaleString()}\n` +
+                `Duration: ${duration} days\n` +
+                `Reference: ${exchanges[exchangeId].returnReference}`,
+                {
+                    book_title: book.title,
+                    owner_name: owner.name,
+                    exchange_address: exchangeAddress,
+                    pickup_time: new Date(pickupTime).toLocaleString(),
+                    duration: duration,
+                    reference: exchanges[exchangeId].returnReference
+                }
+            );
+            
+            sendEmailNotification(
+                owner.email,
+                "Book Exchange Confirmed",
+                `You have accepted the exchange for "${book.title}" with ${requester.name}.\n\n` +
+                `Exchange details:\n` +
+                `Address: ${exchangeAddress}\n` +
+                `Pickup Time: ${new Date(pickupTime).toLocaleString()}\n` +
+                `Duration: ${duration} days\n` +
+                `Reference: ${exchanges[exchangeId].returnReference}`,
+                {
+                    book_title: book.title,
+                    requester_name: requester.name,
+                    exchange_address: exchangeAddress,
+                    pickup_time: new Date(pickupTime).toLocaleString(),
+                    duration: duration,
+                    reference: exchanges[exchangeId].returnReference
+                }
+            );
+            
+            // Close modal
+            cancelAccept();
+            
+            showAlert(`Exchange accepted! Credits updated. Return Reference: ${exchanges[exchangeId].returnReference}`, 'success');
+            loadRequests();
+            loadActiveExchanges();
+            
+            // Update notification badges
+            updateNotificationBadges();
+        }
+
+        function cancelAccept() {
+            document.getElementById('acceptModal').classList.remove('show');
+            document.getElementById('exchangeAddress').value = '';
+            document.getElementById('pickupTime').value = '';
+            document.getElementById('exchangeDuration').value = '7';
+            pendingAcceptRequest = null;
+        }
+
+        function respondToRequest(requestId, response) {
+            const request = requests[requestId];
+            request.status = response;
+            
+            // Save data
+            saveData();
+            
+            const book = books[request.bookId];
+            const requester = users[request.requesterId];
+            
+            if (response === 'rejected') {
+                // Send notification email
+                sendEmailNotification(
+                    requester.email,
+                    "Book Exchange Request Rejected",
+                    `Your request for "${book.title}" has been rejected by the owner.`,
+                    {
+                        book_title: book.title,
+                        owner_name: users[request.ownerId].name
+                    }
+                );
+                
+                showAlert('Request rejected. The requester has been notified.', 'success');
+            }
+            
+            loadRequests();
+            
+            // Update notification badges
+            updateNotificationBadges();
+        }
+
+        function loadActiveExchanges() {
+            const exchangesList = document.getElementById('activeExchangesList');
+            exchangesList.innerHTML = '';
+            
+            let hasExchanges = false;
+            for (let exchangeId in exchanges) {
+                const exchange = exchanges[exchangeId];
+                if (exchange.ownerId === currentUserId || exchange.borrowerId === currentUserId) {
+                    hasExchanges = true;
+                    const exchangeDiv = createExchangeElement(exchange);
+                    exchangesList.appendChild(exchangeDiv);
+                }
+            }
+            
+            if (!hasExchanges) {
+                exchangesList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h5 class="empty-state-title">No Active Exchanges</h5>
+                        <p class="empty-state-description">Start by requesting books or accepting requests from others.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function createExchangeElement(exchange) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            
+            const book = books[exchange.bookId];
+            const owner = users[exchange.ownerId];
+            const borrower = users[exchange.borrowerId];
+            const isOwner = exchange.ownerId === currentUserId;
+            
+            const endDate = new Date(exchange.endDate);
+            const now = new Date();
+            const isOverdue = now > endDate;
+            const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+            
+            let statusBadge;
+            if (exchange.status === 'active') {
+                statusBadge = '<span class="badge badge-primary">Active</span>';
+            } else if (exchange.status === 'completed') {
+                statusBadge = '<span class="badge badge-success">Completed</span>';
+            } else if (isOverdue) {
+                statusBadge = '<span class="badge badge-danger">Overdue</span>';
+            }
+            
+            div.innerHTML = `
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">${book.title}</h5>
+                    ${statusBadge}
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">by ${book.author}</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <small class="text-muted">${isOwner ? 'Borrowed by' : 'Borrowed from'}</small>
+                            <p>${isOwner ? borrower.name : owner.name}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Reference</small>
+                            <p>${exchange.returnReference}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Exchange Address</small>
+                            <p>${exchange.exchangeAddress}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Pickup Time</small>
+                            <p>${new Date(exchange.pickupTime).toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Duration</small>
+                            <p>${exchange.duration} days</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Credits</small>
+                            <p>${exchange.creditsUsed}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">End Date</small>
+                            <p>${endDate.toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                            <small class="text-muted">Status</small>
+                            <p>${isOverdue ? 
+                                `<span class="badge badge-danger">OVERDUE by ${Math.abs(daysLeft)} days</span>` : 
+                                `${daysLeft} days remaining`}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    ${isOverdue ? `
+                        <div class="alert alert-warning">
+                            <p><strong>⚠️ OVERDUE by ${Math.abs(daysLeft)} days!</strong></p>
+                            <p class="mb-0">Please return the book immediately to avoid penalty.</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${exchange.status === 'active' ? `
+                        <button class="btn btn-success w-100" onclick="markAsReturned('${exchange.id}')">
+                            <i class="fas fa-check-circle"></i> Mark as Returned
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function markAsReturned(exchangeId) {
+            const exchange = exchanges[exchangeId];
+            const book = books[exchange.bookId];
+            const owner = users[exchange.ownerId];
+            const borrower = users[exchange.borrowerId];
+            
+            exchange.status = 'completed';
+            exchange.returnDate = new Date().toISOString();
+            
+            // Mark book as available again
+            book.available = true;
+            
+            // Check if returned late and apply penalty
+            const endDate = new Date(exchange.endDate);
+            const returnDate = new Date(exchange.returnDate);
+            
+            if (returnDate > endDate) {
+                const daysLate = Math.ceil((returnDate - endDate) / (1000 * 60 * 60 * 24));
+                const penalty = Math.min(daysLate, users[exchange.borrowerId].credits);
+                users[exchange.borrowerId].credits -= penalty;
+                users[exchange.ownerId].credits += penalty;
+                
+                // Send notification emails
+                sendEmailNotification(
+                    borrower.email,
+                    "Book Returned Late",
+                    `You returned "${book.title}" ${daysLate} days late. ${penalty} credits have been deducted as a penalty.`,
+                    {
+                        book_title: book.title,
+                        days_late: daysLate,
+                        penalty: penalty
+                    }
+                );
+                
+                sendEmailNotification(
+                    owner.email,
+                    "Book Returned Late",
+                    `${borrower.name} returned "${book.title}" ${daysLate} days late. ${penalty} credits have been added to your account as compensation.`,
+                    {
+                        book_title: book.title,
+                        borrower_name: borrower.name,
+                        days_late: daysLate,
+                        penalty: penalty
+                    }
+                );
+                
+                showAlert(`Book returned late! ${penalty} credits transferred as penalty.`, 'warning');
+            } else {
+                // Send notification emails
+                sendEmailNotification(
+                    borrower.email,
+                    "Book Return Confirmed",
+                    `Thank you for returning "${book.title}" on time!`,
+                    {
+                        book_title: book.title
+                    }
+                );
+                
+                sendEmailNotification(
+                    owner.email,
+                    "Book Return Confirmed",
+                    `${borrower.name} has returned "${book.title}" in good condition.`,
+                    {
+                        book_title: book.title,
+                        borrower_name: borrower.name
+                    }
+                );
+                
+                showAlert('Book returned successfully!', 'success');
+            }
+            
+            // Save data
+            saveData();
+            
+            // Update UI
+            document.getElementById('userCredits').textContent = users[currentUserId].credits;
+            updateActiveExchangesCount();
+            loadActiveExchanges();
+            
+            // Update notification badges
+            updateNotificationBadges();
+        }
+
+        function updateActiveExchangesCount() {
+            let count = 0;
+            for (let exchangeId in exchanges) {
+                const exchange = exchanges[exchangeId];
+                if ((exchange.ownerId === currentUserId || exchange.borrowerId === currentUserId) && exchange.status === 'active') {
+                    count++;
+                }
+            }
+            document.getElementById('activeExchanges').textContent = count;
+        }
+
+        function toggleBookAvailability(bookId) {
+            const book = books[bookId];
+            book.available = !book.available;
+            
+            // Save data
+            saveData();
+            
+            showAlert(`Book marked as ${book.available ? 'available' : 'unavailable'}`, 'success');
+            loadMyBooks();
+        }
+
+        function searchBooks() {
+            const query = document.getElementById('searchQuery').value.toLowerCase();
+            const genreFilter = document.getElementById('genreFilter').value;
+            const booksList = document.getElementById('booksList');
+            
+            booksList.innerHTML = '';
+            
+            let found = false;
+            for (let bookId in books) {
+                const book = books[bookId];
+                if (book.available && book.owner !== currentUserId && !isBookInActiveExchange(bookId)) {
+                    const matchesSearch = !query || 
+                        book.title.toLowerCase().includes(query) || 
+                        book.author.toLowerCase().includes(query);
+                    const matchesGenre = !genreFilter || book.genre === genreFilter;
+                    
+                    if (matchesSearch && matchesGenre) {
+                        found = true;
+                        const bookDiv = createBookElement(book, true);
+                        booksList.appendChild(bookDiv);
+                    }
+                }
+            }
+            
+            if (!found) {
+                booksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h5 class="empty-state-title">No Books Found</h5>
+                        <p class="empty-state-description">No books matching your search criteria. Try different keywords.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function sortAndFilterBooks() {
+            loadAvailableBooks();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('genreFilter').value = '';
+            document.getElementById('locationSort').value = 'distance';
+            document.getElementById('distanceFilter').value = 'all';
+            loadAvailableBooks();
+        }
+
+        function showSection(sectionId) {
+            const sections = ['dashboard', 'addBookSection', 'availableBooksSection', 'myBooksSection', 'requestsSection', 'exchangesSection'];
+            sections.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        function logout() {
+            currentUserId = null;
+            localStorage.removeItem('currentUserId');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('heroSection').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('authNav').classList.remove('hidden');
+            document.getElementById('userNav').classList.add('hidden');
+            showAuthSection('login');
+            
+            // Clear any modals
+            cancelAccept();
+            
+            showAlert('You have been logged out successfully.', 'success');
+        }
+
+        function sendEmailNotification(toEmail, subject, message, templateParams) {
+            // In a real app, this would use EmailJS or another email service
+            console.log(`Email to: ${toEmail}\nSubject: ${subject}\nMessage: ${message}`);
+            
+            // Example using EmailJS (you would need to set this up with your credentials)
+            try {
+                emailjs.send('YOUR_EMAILJS_SERVICE_ID', 'YOUR_EMAILJS_TEMPLATE_ID', {
+                    to_email: toEmail,
+                    subject: subject,
+                    message: message,
+                    ...templateParams
+                }).then(function(response) {
+                    console.log('Email sent successfully', response);
+                }, function(error) {
+                    console.error('Email failed to send', error);
+                });
+            } catch (e) {
+                console.error('Email service not configured', e);
+            }
+        }
+
+        function updateUserLocationDisplay() {
+            if (!currentUserId) return;
+            
+            const address = users[currentUserId].address;
+            const city = extractCity(address);
+            const pincode = extractPincode(address);
+            document.getElementById('userLocation').textContent = `${city}, ${pincode}`;
+        }
+
+        function updateNotificationBadges() {
+            if (!currentUserId) return;
+            
+            // My books badge
+            let myBooksCount = 0;
+            for (let bookId in books) {
+                if (books[bookId].owner === currentUserId) {
+                    myBooksCount++;
+                }
+            }
+            const myBooksBadge = document.getElementById('myBooksBadge');
+            myBooksBadge.textContent = myBooksCount;
+            myBooksBadge.classList.toggle('hidden', myBooksCount === 0);
+            
+            // Requests badge (received requests that are pending)
+            let requestsCount = 0;
+            for (let reqId in requests) {
+                if (requests[reqId].ownerId === currentUserId && requests[reqId].status === 'pending') {
+                    requestsCount++;
+                }
+            }
+            const requestsBadge = document.getElementById('requestsBadge');
+            requestsBadge.textContent = requestsCount;
+            requestsBadge.classList.toggle('hidden', requestsCount === 0);
+            
+            // Active exchanges badge
+            let exchangesCount = 0;
+            for (let exchangeId in exchanges) {
+                if ((exchanges[exchangeId].ownerId === currentUserId || 
+                     exchanges[exchangeId].borrowerId === currentUserId) && 
+                    exchanges[exchangeId].status === 'active') {
+                    exchangesCount++;
+                }
+            }
+            const exchangesBadge = document.getElementById('exchangesBadge');
+            exchangesBadge.textContent = exchangesCount;
+            exchangesBadge.classList.toggle('hidden', exchangesCount === 0);
+        }
+
+        function showAlert(message, type) {
+            // In a real app, you would show a nice toast notification
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
