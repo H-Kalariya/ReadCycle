@@ -18,6 +18,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .container {
@@ -26,15 +27,16 @@
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 800px;
             backdrop-filter: blur(10px);
+            margin: 20px 0;
         }
 
         .dashboard-container {
-            max-width: 600px;
+            max-width: 800px;
         }
 
-        h1, h2 {
+        h1, h2, h3 {
             text-align: center;
             margin-bottom: 1.5rem;
             color: #333;
@@ -80,7 +82,7 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, background 0.3s ease;
             margin-top: 1rem;
         }
 
@@ -160,10 +162,106 @@
             font-weight: 600;
         }
 
-        @media (max-width: 480px) {
+        .all-users {
+            margin-top: 2rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .user-card {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-name {
+            font-weight: 700;
+            color: #333;
+        }
+
+        .user-email {
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .user-details-row {
+            display: flex;
+            margin-top: 0.5rem;
+        }
+
+        .user-detail {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .user-detail-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .status-active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-inactive {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .current-user-badge {
+            background: #f39c12;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
             .container {
-                margin: 1rem;
                 padding: 1.5rem;
+            }
+            
+            .user-card-header {
+                flex-direction: column;
+            }
+            
+            .user-details-row {
+                flex-direction: column;
+            }
+            
+            .user-detail {
+                margin-bottom: 0.5rem;
             }
         }
     </style>
@@ -239,178 +337,305 @@
                     <span class="detail-label">Address:</span>
                     <span id="userAddress"></span>
                 </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span id="userStatus"></span>
+                </div>
             </div>
         </div>
         
         <div class="stats">
             <h3>Platform Statistics</h3>
             <p>Total Registered Users: <strong><span id="totalUsers">0</span></strong></p>
+            <p>Active Users: <strong><span id="activeUsers">0</span></strong></p>
+        </div>
+        
+        <div class="all-users">
+            <h3>All Registered Users</h3>
+            <div id="usersList" class="users-list">
+                <!-- Users will be listed here dynamically -->
+            </div>
         </div>
         
         <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 
     <script>
-        console.log('Script loaded'); // Debug
-
-        // Storage
-        let users = JSON.parse(localStorage.getItem('users') || '[]');
-        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-        console.log('Current users:', users.length); // Debug
-
+        // Enhanced storage with cross-device simulation
+        const STORAGE_KEY = "userAuthSystemData";
+        
+        // Initialize storage
+        function initStorage() {
+            if (!localStorage.getItem(STORAGE_KEY)) {
+                const initialData = {
+                    users: [],
+                    sessions: {}
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+            }
+        }
+        
+        // Get all data
+        function getData() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || { users: [], sessions: {} });
+        }
+        
+        // Save all data
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+        
+        // Get current session
+        function getCurrentSession() {
+            const data = getData();
+            return data.sessions[window.sessionStorage.sessionId] || null;
+        }
+        
+        // Update user status
+        function updateUserStatus(userId, isActive) {
+            const data = getData();
+            const user = data.users.find(u => u.id === userId);
+            
+            if (user) {
+                user.isActive = isActive;
+                user.lastActive = new Date().toISOString();
+                saveData(data);
+            }
+        }
+        
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded'); // Debug
-            if (currentUser) {
+            initStorage();
+            
+            // Create session ID if doesn't exist
+            if (!window.sessionStorage.sessionId) {
+                window.sessionStorage.sessionId = 'session_' + Date.now();
+            }
+            
+            const currentSession = getCurrentSession();
+            
+            if (currentSession && currentSession.user) {
+                updateUserStatus(currentSession.user.id, true);
                 showDashboard();
             }
         });
 
         // Show/Hide functions
         function showLogin() {
-            console.log('Showing login'); // Debug
             document.getElementById('loginContainer').classList.remove('hidden');
             document.getElementById('signupContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
         }
 
         function showSignup() {
-            console.log('Showing signup'); // Debug
             document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('signupContainer').classList.remove('hidden');
             document.getElementById('dashboardContainer').classList.add('hidden');
         }
 
         function showDashboard() {
-            console.log('Showing dashboard'); // Debug
             document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('signupContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.remove('hidden');
             
-            if (currentUser) {
-                document.getElementById('userName').textContent = currentUser.name;
-                document.getElementById('userEmail').textContent = currentUser.email;
-                document.getElementById('userPhone').textContent = currentUser.phone;
-                document.getElementById('userAddress').textContent = currentUser.address;
+            const data = getData();
+            const currentSession = getCurrentSession();
+            
+            if (currentSession && currentSession.user) {
+                const user = currentSession.user;
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userPhone').textContent = user.phone;
+                document.getElementById('userAddress').textContent = user.address;
+                document.getElementById('userStatus').textContent = 'Active';
+                document.getElementById('userStatus').className = 'status-active';
+                
+                // Update active users count
+                const activeUsers = data.users.filter(u => u.isActive).length;
+                document.getElementById('activeUsers').textContent = activeUsers;
             }
             
-            document.getElementById('totalUsers').textContent = users.length;
+            // Update total users
+            document.getElementById('totalUsers').textContent = data.users.length;
+            
+            // Render all users
+            renderUsersList(data.users);
+        }
+        
+        // Render users list
+        function renderUsersList(users) {
+            const usersList = document.getElementById('usersList');
+            const currentSession = getCurrentSession();
+            const currentUserId = currentSession ? currentSession.user.id : null;
+            
+            usersList.innerHTML = '';
+            
+            if (users.length === 0) {
+                usersList.innerHTML = '<p>No users registered yet</p>';
+                return;
+            }
+            
+            users.forEach(user => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-card';
+                
+                const statusClass = user.isActive ? 'status-active' : 'status-inactive';
+                const statusText = user.isActive ? 'Active' : 'Inactive';
+                
+                userCard.innerHTML = `
+                    <div class="user-card-header">
+                        <div>
+                            <span class="user-name">${user.name}</span>
+                            ${user.id === currentUserId ? '<span class="current-user-badge">You</span>' : ''}
+                        </div>
+                        <span class="user-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="user-email">${user.email}</div>
+                    <div class="user-details-row">
+                        <div class="user-detail">
+                            <span class="user-detail-label">Phone:</span> ${user.phone}
+                        </div>
+                        <div class="user-detail">
+                            <span class="user-detail-label">Joined:</span> ${new Date(user.createdAt).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="user-details-row">
+                        <div class="user-detail">
+                            <span class="user-detail-label">Address:</span> ${user.address}
+                        </div>
+                    </div>
+                `;
+                
+                usersList.appendChild(userCard);
+            });
         }
 
-        // Wait for DOM to be ready before adding event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // Signup form handler
-            const signupForm = document.getElementById('signupForm');
-            if (signupForm) {
-                signupForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    console.log('Signup form submitted!'); // Debug
-                    
-                    const name = document.getElementById('signupName').value.trim();
-                    const email = document.getElementById('signupEmail').value.trim();
-                    const phone = document.getElementById('signupPhone').value.trim();
-                    const password = document.getElementById('signupPassword').value;
-                    const confirmPassword = document.getElementById('signupConfirmPassword').value;
-                    const address = document.getElementById('signupAddress').value.trim();
-                    
-                    console.log('Form values:', { name, email, phone, address, passwordLength: password.length }); // Debug
-                    
-                    // Clear previous messages
-                    document.getElementById('signupError').textContent = '';
-                    document.getElementById('signupSuccess').textContent = '';
-                    
-                    // Validation
-                    if (!name || !email || !phone || !password || !confirmPassword || !address) {
-                        console.log('Validation failed: missing fields'); // Debug
-                        document.getElementById('signupError').textContent = 'All fields are required.';
-                        return;
-                    }
+        // Signup form handler
+        const signupForm = document.getElementById('signupForm');
+        if (signupForm) {
+            signupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('signupName').value.trim();
+                const email = document.getElementById('signupEmail').value.trim();
+                const phone = document.getElementById('signupPhone').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('signupConfirmPassword').value;
+                const address = document.getElementById('signupAddress').value.trim();
+                
+                // Clear previous messages
+                document.getElementById('signupError').textContent = '';
+                document.getElementById('signupSuccess').textContent = '';
+                
+                // Validation
+                if (!name || !email || !phone || !password || !confirmPassword || !address) {
+                    document.getElementById('signupError').textContent = 'All fields are required.';
+                    return;
+                }
 
-                    if (password.length < 6) {
-                        console.log('Validation failed: password too short'); // Debug
-                        document.getElementById('signupError').textContent = 'Password must be at least 6 characters long.';
-                        return;
-                    }
+                if (password.length < 6) {
+                    document.getElementById('signupError').textContent = 'Password must be at least 6 characters long.';
+                    return;
+                }
 
-                    if (password !== confirmPassword) {
-                        console.log('Validation failed: passwords do not match'); // Debug
-                        document.getElementById('signupError').textContent = 'Passwords do not match.';
-                        return;
-                    }
+                if (password !== confirmPassword) {
+                    document.getElementById('signupError').textContent = 'Passwords do not match.';
+                    return;
+                }
+                
+                const data = getData();
+                
+                // Check if email already exists
+                if (data.users.find(user => user.email === email)) {
+                    document.getElementById('signupError').textContent = 'Email already registered.';
+                    return;
+                }
+                
+                // Create new user
+                const newUser = {
+                    id: Date.now().toString(),
+                    name,
+                    email,
+                    phone,
+                    password,
+                    address,
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    lastActive: new Date().toISOString()
+                };
+                
+                data.users.push(newUser);
+                saveData(data);
+                
+                // Create session
+                const sessionId = window.sessionStorage.sessionId;
+                data.sessions[sessionId] = {
+                    user: newUser,
+                    loginTime: new Date().toISOString()
+                };
+                saveData(data);
+                
+                document.getElementById('signupSuccess').textContent = 'Account created successfully!';
+                document.getElementById('signupForm').reset();
+                
+                // Auto switch to dashboard after 1 second
+                setTimeout(() => {
+                    showDashboard();
+                }, 1000);
+            });
+        }
+
+        // Login form handler
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                // Clear previous error
+                document.getElementById('loginError').textContent = '';
+                
+                const data = getData();
+                
+                // Find user
+                const user = data.users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    // Update user status
+                    user.isActive = true;
+                    user.lastActive = new Date().toISOString();
                     
-                    // Check if email already exists
-                    if (users.find(user => user.email === email)) {
-                        console.log('Validation failed: email exists'); // Debug
-                        document.getElementById('signupError').textContent = 'Email already registered.';
-                        return;
-                    }
-                    
-                    // Create new user
-                    const newUser = {
-                        id: Date.now(),
-                        name,
-                        email,
-                        phone,
-                        password,
-                        address,
-                        createdAt: new Date().toISOString()
+                    // Create session
+                    const sessionId = window.sessionStorage.sessionId;
+                    data.sessions[sessionId] = {
+                        user,
+                        loginTime: new Date().toISOString()
                     };
                     
-                    users.push(newUser);
-                    localStorage.setItem('users', JSON.stringify(users));
-                    
-                    console.log('User created successfully!', newUser.email); // Debug
-                    
-                    document.getElementById('signupSuccess').textContent = 'Account created successfully! You can now login.';
-                    document.getElementById('signupForm').reset();
-                    
-                    // Auto switch to login after 2 seconds
-                    setTimeout(() => {
-                        showLogin();
-                    }, 2000);
-                });
-            } else {
-                console.error('Signup form not found!'); // Debug
-            }
-
-            // Login form handler
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    console.log('Login form submitted!'); // Debug
-                    
-                    const email = document.getElementById('loginEmail').value.trim();
-                    const password = document.getElementById('loginPassword').value;
-                    
-                    // Clear previous error
-                    document.getElementById('loginError').textContent = '';
-                    
-                    // Find user
-                    const user = users.find(u => u.email === email && u.password === password);
-                    
-                    if (user) {
-                        console.log('Login successful!', user.email); // Debug
-                        currentUser = user;
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        showDashboard();
-                    } else {
-                        console.log('Login failed: invalid credentials'); // Debug
-                        document.getElementById('loginError').textContent = 'Invalid email or password. Please check your credentials.';
-                    }
-                });
-            } else {
-                console.error('Login form not found!'); // Debug
-            }
-        });
+                    saveData(data);
+                    showDashboard();
+                } else {
+                    document.getElementById('loginError').textContent = 'Invalid email or password. Please check your credentials.';
+                }
+            });
+        }
 
         // Logout function
         function logout() {
-            console.log('Logging out'); // Debug
-            currentUser = null;
-            localStorage.removeItem('currentUser');
+            const data = getData();
+            const currentSession = getCurrentSession();
+            
+            if (currentSession) {
+                // Update user status
+                updateUserStatus(currentSession.user.id, false);
+                
+                // Remove session
+                delete data.sessions[window.sessionStorage.sessionId];
+                saveData(data);
+            }
+            
             document.getElementById('loginForm').reset();
             showLogin();
         }
