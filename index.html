@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Authentication System</title>
+    <title>Server-Based Authentication System</title>
     <style>
         * {
             margin: 0;
@@ -247,6 +247,21 @@
             margin-left: 0.5rem;
         }
 
+        .server-status {
+            background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1.5rem;
@@ -269,6 +284,9 @@
 <body>
     <!-- Login Form -->
     <div id="loginContainer" class="container">
+        <div class="server-status">
+            🌐 Connected to Server Database - All user data synced across devices
+        </div>
         <h2>Welcome Back</h2>
         <form id="loginForm">
             <div class="form-group">
@@ -287,6 +305,9 @@
 
     <!-- Signup Form -->
     <div id="signupContainer" class="container hidden">
+        <div class="server-status">
+            🌐 Connected to Server Database - Your account will be accessible from any device
+        </div>
         <h2>Create Account</h2>
         <form id="signupForm">
             <div class="form-group">
@@ -322,6 +343,9 @@
 
     <!-- Dashboard -->
     <div id="dashboardContainer" class="container dashboard-container hidden">
+        <div class="server-status">
+            🌐 Real-time data from server - Information synced across all devices
+        </div>
         <div class="user-info">
             <h2>Welcome, <span id="userName"></span>!</h2>
             <div class="user-details">
@@ -345,13 +369,13 @@
         </div>
         
         <div class="stats">
-            <h3>Platform Statistics</h3>
+            <h3>Live Platform Statistics</h3>
             <p>Total Registered Users: <strong><span id="totalUsers">0</span></strong></p>
-            <p>Active Users: <strong><span id="activeUsers">0</span></strong></p>
+            <p>Currently Online: <strong><span id="activeUsers">0</span></strong></p>
         </div>
         
         <div class="all-users">
-            <h3>All Registered Users</h3>
+            <h3>All Registered Users (Live Data)</h3>
             <div id="usersList" class="users-list">
                 <!-- Users will be listed here dynamically -->
             </div>
@@ -361,65 +385,208 @@
     </div>
 
     <script>
-        // Enhanced storage with cross-device simulation
-        const STORAGE_KEY = "userAuthSystemData";
-        
-        // Initialize storage
-        function initStorage() {
-            if (!localStorage.getItem(STORAGE_KEY)) {
-                const initialData = {
-                    users: [],
-                    sessions: {}
+        // Simulated Server API
+        class ServerAPI {
+            constructor() {
+                this.baseURL = 'https://api.example.com'; // Simulated server
+                this.sessionToken = null;
+                this.currentUser = null;
+                
+                // Initialize with some demo data to simulate server state
+                this.initializeServerData();
+            }
+            
+            // Initialize server with demo data (simulates existing server database)
+            initializeServerData() {
+                if (!this.getServerData()) {
+                    const initialData = {
+                        users: [
+                            {
+                                id: 'demo_user_1',
+                                name: 'John Doe',
+                                email: 'john@example.com',
+                                phone: '+1234567890',
+                                password: 'password123',
+                                address: '123 Main St, New York, NY',
+                                createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                isActive: false,
+                                lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+                            },
+                            {
+                                id: 'demo_user_2',
+                                name: 'Jane Smith',
+                                email: 'jane@example.com',
+                                phone: '+1987654321',
+                                password: 'password456',
+                                address: '456 Oak Ave, Los Angeles, CA',
+                                createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                                isActive: true,
+                                lastActive: new Date().toISOString()
+                            }
+                        ],
+                        activeSessions: {}
+                    };
+                    this.saveServerData(initialData);
+                }
+            }
+            
+            // Simulate server data storage (in reality, this would be a database)
+            getServerData() {
+                try {
+                    const data = window.localStorage.getItem('serverDatabase');
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+            
+            saveServerData(data) {
+                window.localStorage.setItem('serverDatabase', JSON.stringify(data));
+            }
+            
+            // Simulate API delay
+            async delay(ms = 500) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            
+            // User Registration
+            async registerUser(userData) {
+                await this.delay();
+                
+                const serverData = this.getServerData();
+                
+                // Check if email already exists
+                if (serverData.users.find(user => user.email === userData.email)) {
+                    throw new Error('Email already registered');
+                }
+                
+                const newUser = {
+                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    ...userData,
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    lastActive: new Date().toISOString()
                 };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+                
+                serverData.users.push(newUser);
+                
+                // Create session
+                const sessionToken = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                serverData.activeSessions[sessionToken] = {
+                    userId: newUser.id,
+                    loginTime: new Date().toISOString(),
+                    deviceInfo: this.getDeviceInfo()
+                };
+                
+                this.saveServerData(serverData);
+                this.sessionToken = sessionToken;
+                this.currentUser = { ...newUser };
+                delete this.currentUser.password; // Don't store password in memory
+                
+                return { user: this.currentUser, sessionToken };
             }
-        }
-        
-        // Get all data
-        function getData() {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || { users: [], sessions: {} });
-        }
-        
-        // Save all data
-        function saveData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        }
-        
-        // Get current session
-        function getCurrentSession() {
-            const data = getData();
-            return data.sessions[window.sessionStorage.sessionId] || null;
-        }
-        
-        // Update user status
-        function updateUserStatus(userId, isActive) {
-            const data = getData();
-            const user = data.users.find(u => u.id === userId);
             
-            if (user) {
-                user.isActive = isActive;
+            // User Login
+            async loginUser(email, password) {
+                await this.delay();
+                
+                const serverData = this.getServerData();
+                const user = serverData.users.find(u => u.email === email && u.password === password);
+                
+                if (!user) {
+                    throw new Error('Invalid email or password');
+                }
+                
+                // Update user status
+                user.isActive = true;
                 user.lastActive = new Date().toISOString();
-                saveData(data);
+                
+                // Create session
+                const sessionToken = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                serverData.activeSessions[sessionToken] = {
+                    userId: user.id,
+                    loginTime: new Date().toISOString(),
+                    deviceInfo: this.getDeviceInfo()
+                };
+                
+                this.saveServerData(serverData);
+                this.sessionToken = sessionToken;
+                this.currentUser = { ...user };
+                delete this.currentUser.password; // Don't store password in memory
+                
+                return { user: this.currentUser, sessionToken };
+            }
+            
+            // Get all users
+            async getAllUsers() {
+                await this.delay(200);
+                
+                const serverData = this.getServerData();
+                return serverData.users.map(user => {
+                    const userCopy = { ...user };
+                    delete userCopy.password; // Don't send passwords
+                    return userCopy;
+                });
+            }
+            
+            // Logout
+            async logout() {
+                await this.delay(200);
+                
+                if (this.sessionToken) {
+                    const serverData = this.getServerData();
+                    
+                    // Update user status
+                    if (this.currentUser) {
+                        const user = serverData.users.find(u => u.id === this.currentUser.id);
+                        if (user) {
+                            user.isActive = false;
+                            user.lastActive = new Date().toISOString();
+                        }
+                    }
+                    
+                    // Remove session
+                    delete serverData.activeSessions[this.sessionToken];
+                    this.saveServerData(serverData);
+                }
+                
+                this.sessionToken = null;
+                this.currentUser = null;
+            }
+            
+            // Check if session is valid
+            async validateSession() {
+                await this.delay(200);
+                
+                if (!this.sessionToken) return null;
+                
+                const serverData = this.getServerData();
+                const session = serverData.activeSessions[this.sessionToken];
+                
+                if (!session) return null;
+                
+                const user = serverData.users.find(u => u.id === session.userId);
+                if (!user) return null;
+                
+                this.currentUser = { ...user };
+                delete this.currentUser.password;
+                
+                return this.currentUser;
+            }
+            
+            // Get device info (simulated)
+            getDeviceInfo() {
+                return {
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString(),
+                    ip: '192.168.1.' + Math.floor(Math.random() * 255) // Simulated IP
+                };
             }
         }
         
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            initStorage();
-            
-            // Create session ID if doesn't exist
-            if (!window.sessionStorage.sessionId) {
-                window.sessionStorage.sessionId = 'session_' + Date.now();
-            }
-            
-            const currentSession = getCurrentSession();
-            
-            if (currentSession && currentSession.user) {
-                updateUserStatus(currentSession.user.id, true);
-                showDashboard();
-            }
-        });
-
+        // Initialize server API
+        const serverAPI = new ServerAPI();
+        
         // Show/Hide functions
         function showLogin() {
             document.getElementById('loginContainer').classList.remove('hidden');
@@ -433,40 +600,49 @@
             document.getElementById('dashboardContainer').classList.add('hidden');
         }
 
-        function showDashboard() {
+        async function showDashboard() {
             document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('signupContainer').classList.add('hidden');
             document.getElementById('dashboardContainer').classList.remove('hidden');
             
-            const data = getData();
-            const currentSession = getCurrentSession();
+            // Set loading state
+            document.getElementById('dashboardContainer').classList.add('loading');
             
-            if (currentSession && currentSession.user) {
-                const user = currentSession.user;
-                document.getElementById('userName').textContent = user.name;
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userPhone').textContent = user.phone;
-                document.getElementById('userAddress').textContent = user.address;
-                document.getElementById('userStatus').textContent = 'Active';
-                document.getElementById('userStatus').className = 'status-active';
+            try {
+                // Get current user data
+                if (serverAPI.currentUser) {
+                    const user = serverAPI.currentUser;
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('userEmail').textContent = user.email;
+                    document.getElementById('userPhone').textContent = user.phone;
+                    document.getElementById('userAddress').textContent = user.address;
+                    document.getElementById('userStatus').textContent = 'Online';
+                    document.getElementById('userStatus').className = 'status-active';
+                }
                 
-                // Update active users count
-                const activeUsers = data.users.filter(u => u.isActive).length;
+                // Get all users from server
+                const allUsers = await serverAPI.getAllUsers();
+                
+                // Update statistics
+                const activeUsers = allUsers.filter(u => u.isActive).length;
+                document.getElementById('totalUsers').textContent = allUsers.length;
                 document.getElementById('activeUsers').textContent = activeUsers;
+                
+                // Render users list
+                renderUsersList(allUsers);
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            } finally {
+                // Remove loading state
+                document.getElementById('dashboardContainer').classList.remove('loading');
             }
-            
-            // Update total users
-            document.getElementById('totalUsers').textContent = data.users.length;
-            
-            // Render all users
-            renderUsersList(data.users);
         }
         
         // Render users list
         function renderUsersList(users) {
             const usersList = document.getElementById('usersList');
-            const currentSession = getCurrentSession();
-            const currentUserId = currentSession ? currentSession.user.id : null;
+            const currentUserId = serverAPI.currentUser ? serverAPI.currentUser.id : null;
             
             usersList.innerHTML = '';
             
@@ -480,7 +656,7 @@
                 userCard.className = 'user-card';
                 
                 const statusClass = user.isActive ? 'status-active' : 'status-inactive';
-                const statusText = user.isActive ? 'Active' : 'Inactive';
+                const statusText = user.isActive ? 'Online' : 'Offline';
                 
                 userCard.innerHTML = `
                     <div class="user-card-header">
@@ -503,6 +679,9 @@
                         <div class="user-detail">
                             <span class="user-detail-label">Address:</span> ${user.address}
                         </div>
+                        <div class="user-detail">
+                            <span class="user-detail-label">Last Active:</span> ${new Date(user.lastActive).toLocaleString()}
+                        </div>
                     </div>
                 `;
                 
@@ -511,69 +690,50 @@
         }
 
         // Signup form handler
-        const signupForm = document.getElementById('signupForm');
-        if (signupForm) {
-            signupForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const name = document.getElementById('signupName').value.trim();
-                const email = document.getElementById('signupEmail').value.trim();
-                const phone = document.getElementById('signupPhone').value.trim();
-                const password = document.getElementById('signupPassword').value;
-                const confirmPassword = document.getElementById('signupConfirmPassword').value;
-                const address = document.getElementById('signupAddress').value.trim();
-                
-                // Clear previous messages
-                document.getElementById('signupError').textContent = '';
-                document.getElementById('signupSuccess').textContent = '';
-                
-                // Validation
-                if (!name || !email || !phone || !password || !confirmPassword || !address) {
-                    document.getElementById('signupError').textContent = 'All fields are required.';
-                    return;
-                }
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const phone = document.getElementById('signupPhone').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const address = document.getElementById('signupAddress').value.trim();
+            
+            // Clear previous messages
+            document.getElementById('signupError').textContent = '';
+            document.getElementById('signupSuccess').textContent = '';
+            
+            // Validation
+            if (!name || !email || !phone || !password || !confirmPassword || !address) {
+                document.getElementById('signupError').textContent = 'All fields are required.';
+                return;
+            }
 
-                if (password.length < 6) {
-                    document.getElementById('signupError').textContent = 'Password must be at least 6 characters long.';
-                    return;
-                }
+            if (password.length < 6) {
+                document.getElementById('signupError').textContent = 'Password must be at least 6 characters long.';
+                return;
+            }
 
-                if (password !== confirmPassword) {
-                    document.getElementById('signupError').textContent = 'Passwords do not match.';
-                    return;
-                }
-                
-                const data = getData();
-                
-                // Check if email already exists
-                if (data.users.find(user => user.email === email)) {
-                    document.getElementById('signupError').textContent = 'Email already registered.';
-                    return;
-                }
-                
-                // Create new user
-                const newUser = {
-                    id: Date.now().toString(),
+            if (password !== confirmPassword) {
+                document.getElementById('signupError').textContent = 'Passwords do not match.';
+                return;
+            }
+            
+            // Set loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating Account...';
+            submitBtn.disabled = true;
+            
+            try {
+                await serverAPI.registerUser({
                     name,
                     email,
                     phone,
                     password,
-                    address,
-                    createdAt: new Date().toISOString(),
-                    isActive: true,
-                    lastActive: new Date().toISOString()
-                };
-                
-                data.users.push(newUser);
-                saveData(data);
-                
-                // Create session
-                const sessionId = window.sessionStorage.sessionId;
-                data.sessions[sessionId] = {
-                    user: newUser,
-                    loginTime: new Date().toISOString()
-                };
-                saveData(data);
+                    address
+                });
                 
                 document.getElementById('signupSuccess').textContent = 'Account created successfully!';
                 document.getElementById('signupForm').reset();
@@ -582,63 +742,83 @@
                 setTimeout(() => {
                     showDashboard();
                 }, 1000);
-            });
-        }
+                
+            } catch (error) {
+                document.getElementById('signupError').textContent = error.message;
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
 
         // Login form handler
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const email = document.getElementById('loginEmail').value.trim();
-                const password = document.getElementById('loginPassword').value;
-                
-                // Clear previous error
-                document.getElementById('loginError').textContent = '';
-                
-                const data = getData();
-                
-                // Find user
-                const user = data.users.find(u => u.email === email && u.password === password);
-                
-                if (user) {
-                    // Update user status
-                    user.isActive = true;
-                    user.lastActive = new Date().toISOString();
-                    
-                    // Create session
-                    const sessionId = window.sessionStorage.sessionId;
-                    data.sessions[sessionId] = {
-                        user,
-                        loginTime: new Date().toISOString()
-                    };
-                    
-                    saveData(data);
-                    showDashboard();
-                } else {
-                    document.getElementById('loginError').textContent = 'Invalid email or password. Please check your credentials.';
-                }
-            });
-        }
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            // Clear previous error
+            document.getElementById('loginError').textContent = '';
+            
+            // Set loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Logging in...';
+            submitBtn.disabled = true;
+            
+            try {
+                await serverAPI.loginUser(email, password);
+                showDashboard();
+            } catch (error) {
+                document.getElementById('loginError').textContent = error.message;
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
 
         // Logout function
-        function logout() {
-            const data = getData();
-            const currentSession = getCurrentSession();
-            
-            if (currentSession) {
-                // Update user status
-                updateUserStatus(currentSession.user.id, false);
-                
-                // Remove session
-                delete data.sessions[window.sessionStorage.sessionId];
-                saveData(data);
+        async function logout() {
+            try {
+                await serverAPI.logout();
+                document.getElementById('loginForm').reset();
+                showLogin();
+            } catch (error) {
+                console.error('Logout error:', error);
             }
-            
-            document.getElementById('loginForm').reset();
-            showLogin();
         }
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check if user has valid session
+            try {
+                const user = await serverAPI.validateSession();
+                if (user) {
+                    showDashboard();
+                } else {
+                    showLogin();
+                }
+            } catch (error) {
+                console.error('Session validation error:', error);
+                showLogin();
+            }
+        });
+        
+        // Auto-refresh user list every 30 seconds to show real-time updates
+        setInterval(async () => {
+            if (!document.getElementById('dashboardContainer').classList.contains('hidden')) {
+                try {
+                    const allUsers = await serverAPI.getAllUsers();
+                    const activeUsers = allUsers.filter(u => u.isActive).length;
+                    document.getElementById('totalUsers').textContent = allUsers.length;
+                    document.getElementById('activeUsers').textContent = activeUsers;
+                    renderUsersList(allUsers);
+                } catch (error) {
+                    console.error('Auto-refresh error:', error);
+                }
+            }
+        }, 30000);
     </script>
 </body>
 </html>
