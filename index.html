@@ -575,6 +575,28 @@
                 });
             }
             
+            async getSessionFromDB(token) {
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['sessions'], 'readonly');
+                    const store = transaction.objectStore('sessions');
+                    const request = store.get(token);
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            async deleteSessionFromDB(token) {
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['sessions'], 'readwrite');
+                    const store = transaction.objectStore('sessions');
+                    const request = store.delete(token);
+                    
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
             // Simulate API delay
             async delay(ms = 300) {
                 return new Promise(resolve => setTimeout(resolve, ms));
@@ -675,6 +697,10 @@
                     }
                 }
                 
+                if (this.sessionToken) {
+                    await this.deleteSessionFromDB(this.sessionToken);
+                }
+                
                 this.sessionToken = null;
                 this.currentUser = null;
                 localStorage.removeItem('authToken');
@@ -683,15 +709,37 @@
             // Validate session
             async validateSession() {
                 if (!this.db) await this.initializeIndexedDB();
+                await this.delay(100);
                 
                 const authToken = localStorage.getItem('authToken');
                 if (!authToken) return null;
                 
-                // For simplicity, we'll validate based on stored token
-                // In real implementation, you'd check the sessions store
-                this.sessionToken = authToken;
-                
-                return null; // For now, require re-login
+                try {
+                    // Get session from database
+                    const session = await this.getSessionFromDB(authToken);
+                    if (!session) return null;
+                    
+                    // Get user from database
+                    const users = await this.getAllUsersFromDB();
+                    const user = users.find(u => u.id === session.userId);
+                    if (!user) return null;
+                    
+                    // Update user status
+                    user.isActive = true;
+                    user.lastActive = new Date().toISOString();
+                    user.deviceId = this.deviceId;
+                    await this.saveUserToDB(user);
+                    
+                    // Set current session
+                    this.sessionToken = authToken;
+                    this.currentUser = { ...user };
+                    delete this.currentUser.password;
+                    
+                    return this.currentUser;
+                } catch (error) {
+                    console.error('Session validation failed:', error);
+                    return null;
+                }
             }
         }
         
@@ -744,6 +792,7 @@
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                alert('Failed to load dashboard: ' + error.message);
             } finally {
                 document.getElementById('dashboardContainer').classList.remove('loading');
             }
@@ -892,4 +941,27 @@
                 document.getElementById('loginForm').reset();
                 showLogin();
             } catch (error) {
-                console.error('Logout error:', error
+                console.error('Logout error:', error);
+                alert('Logout failed: ' + error.message);
+            }
+        }
+
+        // Session persistence on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if we have an existing session
+            try {
+                const user = await globalAPI.validateSession();
+                if (user) {
+                    showDashboard();
+                    return;
+                }
+            } catch (error) {
+                console.error('Session validation error:', error);
+            }
+            
+            // No valid session found
+            showLogin();
+        });
+    </script>
+</body>
+</html>
