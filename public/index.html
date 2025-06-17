@@ -2,85 +2,518 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Registration Form</title>
+ 
+  <title>ReadCycle - Login & Registration</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
     }
-    .form-container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    
+    .container {
+      display: flex;
+      max-width: 1000px;
       width: 100%;
-      max-width: 400px;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
     }
-    .form-container h2 {
-      text-align: center;
+    
+    .welcome-section {
+      flex: 1;
+      background: linear-gradient(rgba(106, 17, 203, 0.85), rgba(37, 117, 252, 0.85)), url('https://images.unsplash.com/photo-1495640388908-05fa85288e61?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80');
+      background-size: cover;
+      background-position: center;
+      padding: 40px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      padding-top: 80px; /* Added padding to accommodate logo */
+    }
+    
+    .welcome-section h1 {
+      font-size: 2.5rem;
       margin-bottom: 20px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-top: 10px; /* Added margin to create space from logo */
     }
-    label {
+    
+    .welcome-section p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      max-width: 90%;
+    }
+    
+    .features {
+      list-style: none;
+      margin-top: 20px;
+    }
+    
+    .features li {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+    }
+    
+    .features li::before {
+      content: '✓';
+      margin-right: 10px;
+      background: rgba(255,255,255,0.2);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-weight: bold;
-      display: block;
-      margin: 10px 0 5px;
     }
+    
+    .form-section {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-toggle {
+      display: flex;
+      margin-bottom: 30px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .form-toggle button {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      color: #777;
+      transition: all 0.3s ease;
+    }
+    
+    .form-toggle button.active {
+      color: #4CAF50;
+    }
+    
+    .form-toggle button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #4CAF50;
+    }
+    
+    .form {
+      display: none;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .form.active {
+      display: flex;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .input-group {
+      position: relative;
+    }
+    
+    .input-group i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #777;
+      font-style: normal;
+    }
+    
     input, textarea {
       width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+      padding: 12px 15px 12px 45px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 1rem;
+      transition: all 0.3s ease;
     }
-    button {
-      width: 100%;
+    
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
+    
+    .password-container {
+      position: relative;
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #777;
+      font-style: normal;
+    }
+    
+    .remember-forgot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 5px 0 15px;
+      font-size: 0.9rem;
+    }
+    
+    .remember-forgot a {
+      color: #4CAF50;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .remember-forgot a:hover {
+      text-decoration: underline;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+    }
+    
+    .checkbox-container input {
+      width: auto;
+      margin-right: 8px;
+      padding: 0;
+    }
+    
+    button[type="submit"] {
       background: #4CAF50;
       color: white;
-      padding: 10px;
-      font-size: 16px;
       border: none;
-      border-radius: 5px;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.3s, transform 0.2s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    button:hover {
+    
+    button[type="submit"]:hover {
       background: #45a049;
+      transform: translateY(-2px);
+    }
+    
+    button[type="submit"]:active {
+      transform: translateY(0);
+    }
+    
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      z-index: 10; /* Added z-index to ensure logo stays on top */
+    }
+    
+    .logo::before {
+      content: '📚';
+      margin-right: 10px;
+    }
+    
+    .response-message {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      text-align: center;
+      display: none;
+    }
+    
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      
+      .welcome-section {
+        padding: 60px 20px 30px 20px; /* Adjusted padding for mobile */
+      }
+      
+      .welcome-section h1 {
+        font-size: 2rem;
+        margin-top: 0; /* Reset margin for mobile */
+      }
+      
+      .form-section {
+        padding: 30px 20px;
+      }
+      
+      .logo {
+        font-size: 1.5rem; /* Smaller logo on mobile */
+      }
     }
   </style>
 </head>
 <body>
-  <div class="form-container">
-    <h2>Registration Form</h2>
-    <form action="/submit" method="POST">
-      <label for="fullname">Full Name:</label>
-      <input type="text" id="fullname" name="fullname" required>
-
-      <label for="userid">User ID:</label>
-      <input type="text" id="userid" name="userid" required>
-
-      <label for="no">Phone Number:</label>
-      <input type="tel" id="no" name="no" required>
-
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required>
-
-      <label for="address">Address:</label>
-      <textarea id="address" name="address" rows="3" required></textarea>
-
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" required>
-
-      <label for="verifyPassword">Verify Password:</label>
-      <input type="password" id="verifyPassword" name="verifyPassword" required>
-
-      <button type="submit">Submit</button>
-    </form>
+  <div class="container">
+    <div class="welcome-section">
+      <div class="logo">
+        <span>ReadCycle</span>
+      </div>
+      <h1>Welcome to ReadCycle</h1>
+      <p>Join our community of book lovers to share, borrow, and discover new stories. Connect with readers around the world and give books a new life.</p>
+      <ul class="features">
+        <li>Exchange books with readers worldwide</li>
+        <li>Discover books tailored to your interests</li>
+        <li>Join book discussions and clubs</li>
+        <li>Track your reading journey</li>
+      </ul>
+    </div>
+    
+    <div class="form-section">
+      <div class="form-container">
+        <div class="form-toggle">
+          <button id="login-toggle" class="active">Login</button>
+          <button id="signup-toggle">Sign Up</button>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="login-form" class="form active">
+          <div class="input-group">
+            <i>👤</i>
+            <input type="text" id="login-identifier" name="identifier" placeholder="Email or User ID" required>
+          </div>
+          
+          <div class="input-group password-container">
+            <i>🔒</i>
+            <input type="password" id="login-password" name="password" placeholder="Password" required>
+            <span class="password-toggle" onclick="togglePassword('login-password', this)">👁️</span>
+          </div>
+          
+          <div class="remember-forgot">
+            <div class="checkbox-container">
+              <input type="checkbox" id="remember" name="remember">
+              <label for="remember">Remember me</label>
+            </div>
+            <a href="#">Forgot password?</a>
+          </div>
+          
+          <button type="submit">Login</button>
+        </form>
+        
+        <!-- Signup Form -->
+        <form id="signup-form" class="form">
+          <div class="input-group">
+            <i>👤</i>
+            <input type="text" id="fullname" name="fullname" placeholder="Full Name" required>
+          </div>
+          
+          <div class="input-group">
+            <i>🆔</i>
+            <input type="text" id="userid" name="userid" placeholder="User ID" required>
+          </div>
+          
+          <div class="input-group">
+            <i>📞</i>
+            <input type="tel" id="phone" name="no" placeholder="Phone Number" required>
+          </div>
+          
+          <div class="input-group">
+            <i>✉️</i>
+            <input type="email" id="email" name="email" placeholder="Email" required>
+          </div>
+          
+          <div class="input-group">
+            <i>📍</i>
+            <textarea id="address" name="address" placeholder="Address" rows="2" required></textarea>
+          </div>
+          
+          <div class="input-group password-container">
+            <i>🔒</i>
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <span class="password-toggle" onclick="togglePassword('password', this)">👁️</span>
+          </div>
+          
+          <div class="input-group password-container">
+            <i>🔒</i>
+            <input type="password" id="verifyPassword" name="verifyPassword" placeholder="Verify Password" required>
+            <span class="password-toggle" onclick="togglePassword('verifyPassword', this)">👁️</span>
+          </div>
+          
+          <button type="submit">Create Account</button>
+        </form>
+        
+        <div id="response-message" class="response-message"></div>
+      </div>
+    </div>
   </div>
+  
+  <script>
+    // Toggle between login and signup forms
+    document.getElementById('login-toggle').addEventListener('click', function() {
+      document.getElementById('login-form').classList.add('active');
+      document.getElementById('signup-form').classList.remove('active');
+      this.classList.add('active');
+      document.getElementById('signup-toggle').classList.remove('active');
+      hideMessage();
+    });
+    
+    document.getElementById('signup-toggle').addEventListener('click', function() {
+      document.getElementById('signup-form').classList.add('active');
+      document.getElementById('login-form').classList.remove('active');
+      this.classList.add('active');
+      document.getElementById('login-toggle').classList.remove('active');
+      hideMessage();
+    });
+    
+    // Password visibility toggle
+    function togglePassword(inputId, toggleElement) {
+      const passwordInput = document.getElementById(inputId);
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleElement.innerHTML = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        toggleElement.innerHTML = '👁️';
+      }
+    }
+    
+    // Form submission handlers
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = this;
+      const formData = new FormData(form);
+      
+      showMessage('Logging in...', 'success');
+      
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ ' + result.message, 'success');
+          // Redirect to dashboard after successful login
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        } else {
+          showMessage('❌ ' + result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        showMessage('❌ An error occurred during login', 'error');
+      }
+    });
+    
+    document.getElementById('signup-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = this;
+      const formData = new FormData(form);
+      
+      // Password validation
+      const password = formData.get('password');
+      const verifyPassword = formData.get('verifyPassword');
+      
+      if (password !== verifyPassword) {
+        showMessage('❌ Passwords do not match. Please try again.', 'error');
+        return;
+      }
+      
+      showMessage('Creating account...', 'success');
+      
+      try {
+        const response = await fetch('/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ ' + result.message, 'success');
+          // Redirect to dashboard after successful registration
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        } else {
+          showMessage('❌ ' + result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        showMessage('❌ An error occurred during registration', 'error');
+      }
+    });
+    
+    // Show response messages
+    function showMessage(message, type) {
+      const responseElement = document.getElementById('response-message');
+      responseElement.textContent = message;
+      responseElement.className = `response-message ${type}`;
+      responseElement.style.display = 'block';
+    }
+    
+    // Hide response messages
+    function hideMessage() {
+      const responseElement = document.getElementById('response-message');
+      responseElement.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
