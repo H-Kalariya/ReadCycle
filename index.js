@@ -49,6 +49,8 @@ const userSchema = new mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
     title: { type: String, required: true },
     author: { type: String, required: true },
+    genre: { type: String }, // Added genre field
+    condition: { type: String }, // Added condition field
     isbn: { type: String },
     description: { type: String },
     status: { 
@@ -525,6 +527,60 @@ app.get('/add-book', requireAuth, (req, res) => {
             <input type="text" id="author" name="author" required>
           </div>
           <div class="form-group">
+            <label for="genre">Genre (Optional)</label>
+            <select id="genre" name="genre">
+              <option value="">Select genre...</option>
+              <option value="Fiction">Fiction</option>
+              <option value="Non-Fiction">Non-Fiction</option>
+              <option value="Science Fiction">Science Fiction</option>
+              <option value="Fantasy">Fantasy</option>
+              <option value="Mystery">Mystery</option>
+              <option value="Thriller">Thriller</option>
+              <option value="Romance">Romance</option>
+              <option value="Historical Fiction">Historical Fiction</option>
+              <option value="Biography">Biography</option>
+              <option value="Autobiography">Autobiography</option>
+              <option value="Memoir">Memoir</option>
+              <option value="Science">Science</option>
+              <option value="Technology">Technology</option>
+              <option value="History">History</option>
+              <option value="Philosophy">Philosophy</option>
+              <option value="Psychology">Psychology</option>
+              <option value="Self-Help">Self-Help</option>
+              <option value="Business">Business</option>
+              <option value="Economics">Economics</option>
+              <option value="Politics">Politics</option>
+              <option value="Religion">Religion</option>
+              <option value="Travel">Travel</option>
+              <option value="Cooking">Cooking</option>
+              <option value="Health">Health</option>
+              <option value="Fitness">Fitness</option>
+              <option value="Art">Art</option>
+              <option value="Music">Music</option>
+              <option value="Poetry">Poetry</option>
+              <option value="Drama">Drama</option>
+              <option value="Comics">Comics</option>
+              <option value="Graphic Novel">Graphic Novel</option>
+              <option value="Children">Children</option>
+              <option value="Young Adult">Young Adult</option>
+              <option value="Academic">Academic</option>
+              <option value="Textbook">Textbook</option>
+              <option value="Reference">Reference</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="condition">Condition (Optional)</label>
+            <select id="condition" name="condition">
+              <option value="">Select condition...</option>
+              <option value="Like New">Like New</option>
+              <option value="Very Good">Very Good</option>
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Poor">Poor</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="isbn">ISBN (Optional)</label>
             <input type="text" id="isbn" name="isbn">
           </div>
@@ -542,6 +598,8 @@ app.get('/add-book', requireAuth, (req, res) => {
           
           const title = document.getElementById('title').value;
           const author = document.getElementById('author').value;
+          const genre = document.getElementById('genre').value;
+          const condition = document.getElementById('condition').value;
           const isbn = document.getElementById('isbn').value;
           const description = document.getElementById('description').value;
           
@@ -551,7 +609,7 @@ app.get('/add-book', requireAuth, (req, res) => {
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ title, author, isbn, description })
+              body: JSON.stringify({ title, author, genre, condition, isbn, description })
             });
             
             const result = await response.json();
@@ -591,13 +649,15 @@ app.get('/add-book', requireAuth, (req, res) => {
 // Add Book Endpoint
 app.post('/add-book', requireAuth, async (req, res) => {
   try {
-    const { title, author, isbn, description } = req.body;
+    const { title, author, genre, condition, isbn, description } = req.body;
     const userId = req.session.user.id;
 
     const newBook = {
       _id: new mongoose.Types.ObjectId(),
       title,
       author,
+      genre: genre || '',
+      condition: condition || '',
       isbn: isbn || '',
       description: description || '',
       status: 'available'
@@ -632,6 +692,8 @@ app.get('/my-books', requireAuth, async (req, res) => {
           <div class="book-info">
             <h3>${book.title}</h3>
             <p><strong>Author:</strong> ${book.author}</p>
+            ${book.genre ? `<p><strong>Genre:</strong> ${book.genre}</p>` : ''}
+            ${book.condition ? `<p><strong>Condition:</strong> ${book.condition}</p>` : ''}
             ${book.isbn ? `<p><strong>ISBN:</strong> ${book.isbn}</p>` : ''}
             ${book.description ? `<p><strong>Description:</strong> ${book.description}</p>` : ''}
             <div class="status ${book.status}">${book.status.toUpperCase()}</div>
@@ -885,59 +947,168 @@ app.get('/find-books', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user.id;
     
-    // Find all books from other users that are available
-    const users = await User.find({
+    // Get search and filter parameters from query string
+    const { 
+      search, 
+      genre, 
+      author, 
+      location, 
+      condition, 
+      availability,
+      sort 
+    } = req.query;
+    
+    // Build the base query
+    let query = {
       _id: { $ne: userId },
       'myBooks.status': 'available'
-    }).select('fullname userid myBooks address _id'); // Make sure to include _id
-
-    let booksHtml = '';
+    };
     
-    if (users.length === 0) {
-      booksHtml = `<div class="no-books">No books available from other users at the moment.</div>`;
-    } else {
-      users.forEach(user => {
-        user.myBooks.forEach(book => {
-          if (book.status === 'available') {
-            // Debug logging to check user data
-            console.log(`User ${user.fullname} (${user.userid}) address:`, user.address);
-            console.log(`User address type:`, typeof user.address);
-            console.log(`User address length:`, user.address ? user.address.length : 'undefined');
-            
-            const addressValue = user.address || 'Address not available';
-            console.log(`Final address value for data attribute:`, addressValue);
-            
-            booksHtml += `
-              <div class="book-card">
-                <div class="book-info">
-                  <h3>${book.title}</h3>
-                  <p><strong>Author:</strong> ${book.author}</p>
-                  <p><strong>Owner:</strong> ${user.fullname}</p>
-                  <p><strong>User ID:</strong> ${user.userid}</p>
-                  <p><strong>Address:</strong> ${user.address || 'Not provided'}</p>
-                  ${book.description ? `<p><strong>Description:</strong> ${book.description}</p>` : ''}
-                  ${book.isbn ? `<p><strong>ISBN:</strong> ${book.isbn}</p>` : ''}
-                </div>
-                <div class="book-actions">
-                  <button class="btn request-btn" 
-                    data-book-id="${book._id ? book._id.toString() : 'ERROR'}"
-                    data-owner-id="${user._id ? user._id.toString() : 'ERROR'}"
-                    data-book-title="${book.title || 'Unknown Title'}"
-                    data-book-author="${book.author || 'Unknown Author'}"
-                    data-owner-name="${user.fullname || 'Unknown Owner'}"
-                    data-owner-userid="${user.userid || 'N/A'}"
-                    data-owner-address="${addressValue}">
-                    Request Book
-                  </button>
-                </div>
-              </div>
-            `;
+    // Add search filter (searches in title, author, and description)
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query['myBooks'] = {
+        $elemMatch: {
+          status: 'available',
+          $or: [
+            { title: searchRegex },
+            { author: searchRegex },
+            { description: searchRegex }
+          ]
+        }
+      };
+    }
+    
+    // Add genre filter
+    if (genre && genre.trim()) {
+      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
+      query['myBooks.$elemMatch.genre'] = new RegExp(genre.trim(), 'i');
+    }
+    
+    // Add author filter
+    if (author && author.trim()) {
+      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
+      query['myBooks.$elemMatch.author'] = new RegExp(author.trim(), 'i');
+    }
+    
+    // Add location filter (searches in user's address)
+    if (location && location.trim()) {
+      query.address = new RegExp(location.trim(), 'i');
+    }
+    
+    // Add condition filter (searches in book condition field)
+    if (condition && condition.trim()) {
+      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
+      query['myBooks.$elemMatch.condition'] = new RegExp(condition.trim(), 'i');
+    }
+    
+    // Add availability filter (though all books shown are available, this could be for future use)
+    if (availability && availability !== 'all') {
+      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
+      query['myBooks.$elemMatch.status'] = availability;
+    }
+    
+    // Find all books from other users that match the filters
+    const users = await User.find(query).select('fullname userid myBooks address _id requestedBooks');
+
+    // Collect all books and flatten the structure for sorting
+    let allBooks = [];
+    users.forEach(user => {
+      user.myBooks.forEach(book => {
+        if (book.status === 'available') {
+          // Count pending requests for this book
+          const pendingRequestsCount = user.requestedBooks.filter(req => 
+            req.bookId.equals(book._id) && req.status === 'pending'
+          ).length;
+          
+          // Skip books with missing critical information
+          if (!book._id || !user._id || !book.title || !book.author || !user.fullname || !user.userid) {
+            console.warn('Skipping book with missing data:', book);
+            return;
           }
-        });
+          
+          allBooks.push({
+            ...book.toObject(),
+            owner: {
+              _id: user._id,
+              fullname: user.fullname,
+              userid: user.userid,
+              address: user.address || 'Address not available'
+            },
+            pendingRequestsCount
+          });
+        }
+      });
+    });
+
+    // Apply sorting
+    if (sort) {
+      allBooks.sort((a, b) => {
+        switch (sort) {
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          case 'author':
+            return a.author.localeCompare(b.author);
+          case 'author-desc':
+            return b.author.localeCompare(a.author);
+          case 'genre':
+            return (a.genre || '').toLowerCase().localeCompare((b.genre || '').toLowerCase());
+          case 'genre-desc':
+            return (b.genre || '').toLowerCase().localeCompare((a.genre || '').toLowerCase());
+          case 'location':
+            return (a.owner.address || '').localeCompare(b.owner.address || '');
+          case 'location-desc':
+            return (b.owner.address || '').localeCompare(a.owner.address || '');
+          case 'newest':
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          case 'oldest':
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+          default:
+            return 0;
+        }
       });
     }
 
-    console.log("Generated book cards HTML:", booksHtml); // Add this line
+    let booksHtml = '';
+    
+    if (allBooks.length === 0) {
+      booksHtml = `<div class="no-books">No books found matching your search criteria.</div>`;
+    } else {
+      allBooks.forEach(book => {
+        const addressValue = book.owner.address;
+        
+        booksHtml += `
+          <div class="book-card">
+            <div class="book-info">
+              <h3>${book.title}</h3>
+              <p><strong>Author:</strong> ${book.author}</p>
+              ${book.genre ? `<p><strong>Genre:</strong> ${book.genre}</p>` : ''}
+              ${book.condition ? `<p><strong>Condition:</strong> ${book.condition}</p>` : ''}
+              <p><strong>Owner:</strong> ${book.owner.fullname}</p>
+              <p><strong>User ID:</strong> ${book.owner.userid}</p>
+              <p><strong>Location:</strong> ${addressValue}</p>
+              ${book.pendingRequestsCount > 0 ? `<p><strong>Pending Requests:</strong> <span class="pending-count">${book.pendingRequestsCount}</span></p>` : ''}
+              ${book.description ? `<p><strong>Description:</strong> ${book.description}</p>` : ''}
+              ${book.isbn ? `<p><strong>ISBN:</strong> ${book.isbn}</p>` : ''}
+            </div>
+            <div class="book-actions">
+              <button class="btn request-btn" 
+                data-book-id="${book._id.toString()}"
+                data-owner-id="${book.owner._id.toString()}"
+                data-book-title="${book.title}"
+                data-book-author="${book.author}"
+                data-owner-name="${book.owner.fullname}"
+                data-owner-userid="${book.owner.userid}"
+                data-owner-address="${addressValue}">
+                Request Book
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
 
     res.send(`
       <!DOCTYPE html>
@@ -977,6 +1148,121 @@ app.get('/find-books', requireAuth, async (req, res) => {
             color: #2575fc;
             text-decoration: none;
             font-weight: bold;
+          }
+          .search-filter-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+          }
+          .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+          }
+          .search-group {
+            flex: 1;
+          }
+          .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+          }
+          .search-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+          }
+          .search-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+          }
+          .search-btn:hover {
+            background: #45a049;
+          }
+          .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+          }
+          .filter-group {
+            display: flex;
+            flex-direction: column;
+          }
+          .filter-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+          }
+          .filter-input, .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+          }
+          .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+          }
+          .filter-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+          }
+          .filter-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+          }
+          .filter-btn:hover {
+            background: #1976D2;
+          }
+          .clear-btn {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background 0.3s;
+          }
+          .clear-btn:hover {
+            background: #5a6268;
+          }
+          .active-filters {
+            background: #e3f2fd;
+            border: 1px solid #2196F3;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #1976D2;
+          }
+          .active-filters .clear-all {
+            color: #f44336;
+            text-decoration: none;
+            margin-left: 10px;
+            font-weight: bold;
+          }
+          .active-filters .clear-all:hover {
+            text-decoration: underline;
           }
           .books-container {
             margin-top: 20px;
@@ -1028,6 +1314,14 @@ app.get('/find-books', requireAuth, async (req, res) => {
             padding: 40px 0;
             font-size: 18px;
             color: #666;
+          }
+          .pending-count {
+            background: #ff9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
           }
           .modal {
             display: none;
@@ -1083,6 +1377,88 @@ app.get('/find-books', requireAuth, async (req, res) => {
             <h1>Find Books</h1>
           </div>
           
+          <!-- Search and Filter Form -->
+          <div class="search-filter-section">
+            <form id="searchFilterForm" method="GET" action="/find-books">
+              <div class="search-row">
+                <div class="search-group">
+                  <input type="text" name="search" placeholder="Search books, authors, or descriptions..." 
+                         value="${search || ''}" class="search-input">
+                </div>
+                <button type="submit" class="search-btn">🔍 Search</button>
+              </div>
+              
+              <div class="filter-row">
+                <div class="filter-group">
+                  <label for="genre">Genre:</label>
+                  <select name="genre" class="filter-select">
+                    <option value="">All Genres</option>
+                    <option value="Fiction" ${genre === 'Fiction' ? 'selected' : ''}>Fiction</option>
+                    <option value="Non-Fiction" ${genre === 'Non-Fiction' ? 'selected' : ''}>Non-Fiction</option>
+                    <option value="Science Fiction" ${genre === 'Science Fiction' ? 'selected' : ''}>Science Fiction</option>
+                    <option value="Fantasy" ${genre === 'Fantasy' ? 'selected' : ''}>Fantasy</option>
+                    <option value="Mystery" ${genre === 'Mystery' ? 'selected' : ''}>Mystery</option>
+                    <option value="Thriller" ${genre === 'Thriller' ? 'selected' : ''}>Thriller</option>
+                    <option value="Romance" ${genre === 'Romance' ? 'selected' : ''}>Romance</option>
+                    <option value="Historical Fiction" ${genre === 'Historical Fiction' ? 'selected' : ''}>Historical Fiction</option>
+                    <option value="Biography" ${genre === 'Biography' ? 'selected' : ''}>Biography</option>
+                    <option value="Autobiography" ${genre === 'Autobiography' ? 'selected' : ''}>Autobiography</option>
+                    <option value="Memoir" ${genre === 'Memoir' ? 'selected' : ''}>Memoir</option>
+                    <option value="Science" ${genre === 'Science' ? 'selected' : ''}>Science</option>
+                    <option value="Technology" ${genre === 'Technology' ? 'selected' : ''}>Technology</option>
+                    <option value="History" ${genre === 'History' ? 'selected' : ''}>History</option>
+                    <option value="Philosophy" ${genre === 'Philosophy' ? 'selected' : ''}>Philosophy</option>
+                    <option value="Psychology" ${genre === 'Psychology' ? 'selected' : ''}>Psychology</option>
+                    <option value="Self-Help" ${genre === 'Self-Help' ? 'selected' : ''}>Self-Help</option>
+                    <option value="Business" ${genre === 'Business' ? 'selected' : ''}>Business</option>
+                    <option value="Economics" ${genre === 'Economics' ? 'selected' : ''}>Economics</option>
+                    <option value="Politics" ${genre === 'Politics' ? 'selected' : ''}>Politics</option>
+                    <option value="Religion" ${genre === 'Religion' ? 'selected' : ''}>Religion</option>
+                    <option value="Travel" ${genre === 'Travel' ? 'selected' : ''}>Travel</option>
+                    <option value="Cooking" ${genre === 'Cooking' ? 'selected' : ''}>Cooking</option>
+                    <option value="Health" ${genre === 'Health' ? 'selected' : ''}>Health</option>
+                    <option value="Fitness" ${genre === 'Fitness' ? 'selected' : ''}>Fitness</option>
+                    <option value="Art" ${genre === 'Art' ? 'selected' : ''}>Art</option>
+                    <option value="Music" ${genre === 'Music' ? 'selected' : ''}>Music</option>
+                    <option value="Poetry" ${genre === 'Poetry' ? 'selected' : ''}>Poetry</option>
+                    <option value="Drama" ${genre === 'Drama' ? 'selected' : ''}>Drama</option>
+                    <option value="Comics" ${genre === 'Comics' ? 'selected' : ''}>Comics</option>
+                    <option value="Graphic Novel" ${genre === 'Graphic Novel' ? 'selected' : ''}>Graphic Novel</option>
+                    <option value="Children" ${genre === 'Children' ? 'selected' : ''}>Children</option>
+                    <option value="Young Adult" ${genre === 'Young Adult' ? 'selected' : ''}>Young Adult</option>
+                    <option value="Academic" ${genre === 'Academic' ? 'selected' : ''}>Academic</option>
+                    <option value="Textbook" ${genre === 'Textbook' ? 'selected' : ''}>Textbook</option>
+                    <option value="Reference" ${genre === 'Reference' ? 'selected' : ''}>Reference</option>
+                    <option value="Other" ${genre === 'Other' ? 'selected' : ''}>Other</option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <label for="author">Author:</label>
+                  <input type="text" name="author" placeholder="e.g., John Doe" 
+                         value="${author || ''}" class="filter-input">
+                </div>
+                
+                <div class="filter-group">
+                  <label for="location">Location:</label>
+                  <input type="text" name="location" placeholder="e.g., Downtown, North Side" 
+                         value="${location || ''}" class="filter-input">
+                </div>
+                
+                <div class="filter-group">
+                  <label for="condition">Condition:</label>
+                  <input type="text" name="condition" placeholder="e.g., Like new, Good" 
+                         value="${condition || ''}" class="filter-input">
+                </div>
+              </div>
+              
+              <div class="filter-actions">
+                <button type="submit" class="filter-btn">Apply Filters</button>
+                <a href="/find-books" class="clear-btn">Clear All</a>
+              </div>
+            </form>
+          </div>
+          
           <div class="books-container">
             ${booksHtml}
           </div>
@@ -1108,35 +1484,83 @@ app.get('/find-books', requireAuth, async (req, res) => {
           const span = document.getElementsByClassName('close')[0];
           let currentBookData = {};
 
+          // Search and filter functionality
+          const searchForm = document.getElementById('searchFilterForm');
+          const searchInput = document.querySelector('input[name="search"]');
+          
+          // Auto-submit form when search input changes (with debounce)
+          let searchTimeout;
+          searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+              if (this.value.length >= 2 || this.value.length === 0) {
+                searchForm.submit();
+              }
+            }, 500);
+          });
+          
+          // Show active filters
+          function showActiveFilters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeFilters = [];
+            
+            if (urlParams.get('search')) activeFilters.push('Search: "' + urlParams.get('search') + '"');
+            if (urlParams.get('genre')) activeFilters.push('Genre: "' + urlParams.get('genre') + '"');
+            if (urlParams.get('author')) activeFilters.push('Author: "' + urlParams.get('author') + '"');
+            if (urlParams.get('location')) activeFilters.push('Location: "' + urlParams.get('location') + '"');
+            if (urlParams.get('condition')) activeFilters.push('Condition: "' + urlParams.get('condition') + '"');
+            if (urlParams.get('availability') && urlParams.get('availability') !== 'all') {
+              activeFilters.push('Availability: "' + urlParams.get('availability') + '"');
+            }
+            if (urlParams.get('sort')) {
+              const sortLabels = {
+                'title': 'Title (A-Z)',
+                'title-desc': 'Title (Z-A)',
+                'author': 'Author (A-Z)',
+                'author-desc': 'Author (Z-A)',
+                'genre': 'Genre (A-Z)',
+                'genre-desc': 'Genre (Z-A)',
+                'location': 'Location (A-Z)',
+                'location-desc': 'Location (Z-A)',
+                'newest': 'Newest First',
+                'oldest': 'Oldest First'
+              };
+              activeFilters.push('Sort: "' + (sortLabels[urlParams.get('sort')] || urlParams.get('sort')) + '"');
+            }
+            
+            if (activeFilters.length > 0) {
+              const filterDisplay = document.createElement('div');
+              filterDisplay.className = 'active-filters';
+              filterDisplay.innerHTML = 
+                '<strong>Active Filters:</strong> ' + activeFilters.join(', ') +
+                '<a href="/find-books" class="clear-all">Clear All</a>';
+              searchForm.parentNode.insertBefore(filterDisplay, searchForm.nextSibling);
+            }
+          }
+          
+          // Initialize active filters display
+          showActiveFilters();
+
           // Update event delegation to handle dynamically added content
           document.body.addEventListener('click', function(e) {
             if (e.target.classList.contains('request-btn')) {
               const btn = e.target;
-              console.log("Request button dataset:", btn.dataset);
-              console.log("All dataset keys:", Object.keys(btn.dataset));
-              console.log("ownerAddress value:", btn.dataset.ownerAddress);
-              console.log("ownerAddress type:", typeof btn.dataset.ownerAddress);
-              console.log("ownerAddress length:", btn.dataset.ownerAddress ? btn.dataset.ownerAddress.length : 'undefined');
               
               // Verify all required attributes
               const requiredAttrs = [
                 'bookId', 'ownerId', 'bookTitle', 'bookAuthor', 
                 'ownerName', 'ownerUserid'
-                // Temporarily removed 'ownerAddress' to test if this is the issue
               ];
               
-              const missingAttrs = requiredAttrs.filter(attr => !btn.dataset[attr] || btn.dataset[attr].trim() === '');
+              const missingAttrs = requiredAttrs.filter(attr => {
+                const value = btn.dataset[attr];
+                return !value || value.trim() === '';
+              });
               
               if (missingAttrs.length > 0) {
                 console.error("Missing attributes in button:", missingAttrs, "Dataset:", btn.dataset);
-                console.error("Full dataset object:", JSON.stringify(btn.dataset, null, 2));
-                alert('Missing information: ' + missingAttrs.join(', '));
+                alert('Cannot request this book: Missing information. Please report this issue.');
                 return;
-              }
-              
-              // Check address separately
-              if (!btn.dataset.ownerAddress || btn.dataset.ownerAddress.trim() === '') {
-                console.warn("Address is missing or empty, but continuing with request");
               }
               
               currentBookData = {
@@ -1146,10 +1570,9 @@ app.get('/find-books', requireAuth, async (req, res) => {
                 bookAuthor: btn.dataset.bookAuthor,
                 ownerName: btn.dataset.ownerName,
                 ownerUserId: btn.dataset.ownerUserid,
-                ownerAddress: btn.dataset.ownerAddress || 'Address not available'
+                ownerAddress: btn.dataset.ownerAddress
               };
               
-              console.log("Current book data:", currentBookData);
               modal.style.display = 'block';
             }
           });
@@ -1181,8 +1604,6 @@ app.get('/find-books', requireAuth, async (req, res) => {
               message: formData.get('message') || ''
             };
 
-            console.log("Submitting request data:", requestData);
-            
             try {
               const response = await fetch('/request-book', {
                 method: 'POST',
@@ -1237,8 +1658,8 @@ app.post('/request-book', requireAuth, async (req, res) => {
 
     // Check if requester has enough credits
     const requester = await User.findById(requesterId);
-    if (requester.credits < 1) {
-      return res.status(400).json({ error: 'You need at least 1 credit to request a book' });
+    if (requester.credits < 10) { // Changed to 10 credits
+      return res.status(400).json({ error: 'You need at least 10 credits to request a book' });
     }
 
     // Validate IDs
@@ -1257,6 +1678,17 @@ app.post('/request-book', requireAuth, async (req, res) => {
     if (!requesterData) {
       console.error("Requester not found:", requesterId);
       return res.status(404).json({ error: 'Requester not found' });
+    }
+
+    // Check if requester already has a pending request for this book
+    const existingPendingRequest = await User.findOne({
+      _id: requesterIdObj,
+      'bookRequests.bookId': bookIdObj,
+      'bookRequests.status': 'pending'
+    });
+
+    if (existingPendingRequest) {
+      return res.status(400).json({ error: 'You already have a pending request for this book' });
     }
 
     // Verify book availability
@@ -1339,15 +1771,9 @@ app.post('/request-book', requireAuth, async (req, res) => {
         { session }
       );
 
-      console.log("Updating book status to 'requested'...");
-      await User.updateOne(
-        { 
-          _id: ownerIdObj,
-          'myBooks._id': bookIdObj
-        },
-        { $set: { 'myBooks.$.status': 'requested' } },
-        { session }
-      );
+      // Keep book status as 'available' so others can still request it
+      // Book status will only change to 'borrowed' when owner accepts a request
+      console.log("Book remains available for other requests...");
 
       await session.commitTransaction();
       console.log("Request created successfully!");
@@ -1720,7 +2146,7 @@ app.get('/requests', requireAuth, async (req, res) => {
   }
 });
 
-// Accept Request Endpoint - CORRECTED VERSION
+// Accept Request Endpoint - CORRECTED VERSION with 10 credit transfer
 app.post('/accept-request', requireAuth, async (req, res) => {
   try {
     const { requestId, exchangeAddress, exchangeTime } = req.body;
@@ -1740,13 +2166,13 @@ app.post('/accept-request', requireAuth, async (req, res) => {
     if (!request) return res.status(404).json({ error: 'Request details not found' });
 
     // Get requester details
-    const requester = await User.findById(request.requesterId);
-    if (!requester) {
+    const requesterData = await User.findById(request.requesterId);
+    if (!requesterData) {
       return res.status(404).json({ error: 'Requester not found' });
     }
 
     // Check requester has enough credits
-    if (requester.credits < 1) {
+    if (requesterData.credits < 10) { // Changed to 10 credits
       return res.status(400).json({ error: 'Requester does not have enough credits' });
     }
 
@@ -1787,16 +2213,16 @@ app.post('/accept-request', requireAuth, async (req, res) => {
         { session }
       );
 
-      // Update credits
+      // Update credits - changed to 10 credits
       await User.updateOne(
-        { _id: requester._id },
-        { $inc: { credits: -1 } },
+        { _id: requesterData._id },
+        { $inc: { credits: -10 } },   // Changed to 10 credits
         { session }
       );
 
       await User.updateOne(
         { _id: userIdObj },
-        { $inc: { credits: 1 } },
+        { $inc: { credits: 10 } },    // Changed to 10 credits
         { session }
       );
 
@@ -1811,6 +2237,29 @@ app.post('/accept-request', requireAuth, async (req, res) => {
         },
         { session }
       );
+
+      // Reject all other pending requests for this book
+      const otherRequests = owner.requestedBooks.filter(req => 
+        req.bookId.equals(request.bookId) && 
+        req.status === 'pending' && 
+        !req._id.equals(requestIdObj)
+      );
+
+      for (const otherRequest of otherRequests) {
+        // Update owner's request
+        await User.updateOne(
+          { _id: userIdObj, 'requestedBooks._id': otherRequest._id },
+          { $set: { 'requestedBooks.$.status': 'rejected' } },
+          { session }
+        );
+
+        // Update requester's request
+        await User.updateOne(
+          { _id: otherRequest.requesterId, 'bookRequests._id': otherRequest._id },
+          { $set: { 'bookRequests.$.status': 'rejected' } },
+          { session }
+        );
+      }
 
       await session.commitTransaction();
       res.json({ message: 'Request accepted successfully!' });
@@ -1876,17 +2325,28 @@ app.post('/reject-request', requireAuth, async (req, res) => {
         { session }
       );
 
-      // Revert book status to available
-      await User.updateOne(
-        {
-          _id: userIdObj,
-          'myBooks._id': request.bookId
-        },
-        {
-          $set: { 'myBooks.$.status': 'available' }
-        },
-        { session }
+      // Check if there are any other pending requests for this book
+      const otherPendingRequests = owner.requestedBooks.filter(req => 
+        req.bookId.equals(request.bookId) && 
+        req.status === 'pending' && 
+        !req._id.equals(requestIdObj)
       );
+
+      // Only revert book status to available if no other pending requests exist
+      if (otherPendingRequests.length === 0) {
+        await User.updateOne(
+          {
+            _id: userIdObj,
+            'myBooks._id': request.bookId
+          },
+          {
+            $set: { 'myBooks.$.status': 'available' }
+          },
+          { session }
+        );
+      } else {
+        console.log(`Book ${request.bookId} still has ${otherPendingRequests.length} pending requests`);
+      }
 
       await session.commitTransaction();
       res.json({ message: 'Request rejected successfully!' });
