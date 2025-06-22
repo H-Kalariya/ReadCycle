@@ -4,17 +4,20 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const cors = require('cors');
+
 const app = express();
 const port = 3019;
 
 // Connect to MongoDB
-mongoose.connect("mongodb+srv://HetviK22:HetviK76004@cluster0.wrddkah.mongodb.net/b", {
+mongoose.connect("mongodb+srv://HetviK2208:HetviK9909855402@cluster0.ih1tunm.mongodb.net/ReadCycle", {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.log("❌ MongoDB connection error:", err));
 
 // Middleware
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -22,15 +25,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Session middleware
 app.use(session({
   secret: 'your-secret-key-here',
-  resave: false,
+  resave: true,
   saveUninitialized: false,
   cookie: { 
     secure: false,
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
-  }
+  },
+  store: new session.MemoryStore()
 }));
 
-// Enhanced user schema with exchange details
+// Enhanced user schema with requestedBooks field
 const userSchema = new mongoose.Schema({
   fullname: { type: String, required: true },
   userid: { type: String, unique: true, required: true },
@@ -39,7 +44,9 @@ const userSchema = new mongoose.Schema({
   address: { type: String, required: true },
   password: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
+  credits: { type: Number, default: 20 },
   myBooks: [{
+    _id: mongoose.Schema.Types.ObjectId,
     title: { type: String, required: true },
     author: { type: String, required: true },
     isbn: { type: String },
@@ -50,6 +57,25 @@ const userSchema = new mongoose.Schema({
       default: 'available' 
     }
   }],
+  requestedBooks: [{
+    bookId: { type: mongoose.Schema.Types.ObjectId },
+    bookTitle: { type: String, required: true },
+    bookAuthor: { type: String, required: true },
+    requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    requesterName: { type: String },
+    requesterUserId: { type: String },
+    requesterPhone: { type: String },
+    requesterAddress: { type: String },
+    status: { 
+      type: String, 
+      enum: ['pending', 'accepted', 'rejected'], 
+      default: 'pending' 
+    },
+    exchangeAddress: { type: String },
+    exchangeTime: { type: Date },
+    message: { type: String },
+    requestedAt: { type: Date, default: Date.now }
+  }],
   bookRequests: [{
     bookId: { type: mongoose.Schema.Types.ObjectId },
     bookTitle: { type: String, required: true },
@@ -58,11 +84,6 @@ const userSchema = new mongoose.Schema({
     ownerName: { type: String },
     ownerUserId: { type: String },
     ownerAddress: { type: String },
-    requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    requesterName: { type: String },
-    requesterUserId: { type: String },
-    requesterPhone: { type: String },
-    requesterAddress: { type: String },
     status: { 
       type: String, 
       enum: ['pending', 'accepted', 'rejected'], 
@@ -131,13 +152,23 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Handle signup
+// Handle signup with enhanced validation
 app.post('/signup', async (req, res) => {
   const { fullname, userid, no, email, address, password, verifyPassword } = req.body;
+
+  // Validate required fields
+  if (!fullname || !userid || !no || !email || !address || !password || !verifyPassword) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
 
   // Validate password match
   if (password !== verifyPassword) {
     return res.status(400).json({ error: "Passwords do not match." });
+  }
+
+  // Validate password strength
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long." });
   }
 
   try {
@@ -156,7 +187,9 @@ app.post('/signup', async (req, res) => {
       email,
       address,
       password,
+      credits: 20,
       myBooks: [],
+      requestedBooks: [],
       bookRequests: []
     });
 
@@ -188,14 +221,25 @@ app.post('/signup', async (req, res) => {
       });
     }
     
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ error: errors.join(', ') });
+    }
+    
     console.error("❌ Error saving user:", error);
     res.status(500).json({ error: "Server error while registering user." });
   }
 });
 
-// Handle login
+// Handle login with enhanced validation
 app.post('/login', async (req, res) => {
   const { identifier, password } = req.body;
+
+  // Validate input
+  if (!identifier || !password) {
+    return res.status(400).json({ error: "Email/user ID and password are required." });
+  }
 
   try {
     // Find user by email or userid
@@ -228,6 +272,12 @@ app.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error("❌ Login error:", error);
+    
+    // Handle specific errors
+    if (error.name === 'CastError') {
+      return res.status(400).json({ error: "Invalid input format." });
+    }
+    
     res.status(500).json({ error: "Server error during login." });
   }
 });
@@ -318,6 +368,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
             <p><strong>Email:</strong> ${user.email}</p>
             <p><strong>Phone:</strong> ${user.phone}</p>
             <p><strong>Address:</strong> ${user.address}</p>
+            <p><strong>Credits:</strong> ${user.credits}</p>
             <p><strong>Member since:</strong> ${user.createdAt.toLocaleDateString()}</p>
           </div>
           
@@ -544,6 +595,7 @@ app.post('/add-book', requireAuth, async (req, res) => {
     const userId = req.session.user.id;
 
     const newBook = {
+      _id: new mongoose.Types.ObjectId(),
       title,
       author,
       isbn: isbn || '',
@@ -588,6 +640,8 @@ app.get('/my-books', requireAuth, async (req, res) => {
             ${book.status === 'available' ? 
               `<button class="btn edit-btn" data-id="${book._id}">Edit</button>
                <button class="btn delete-btn" data-id="${book._id}">Remove</button>` : 
+              book.status === 'borrowed' ?
+              `<button class="btn mark-available-btn" data-id="${book._id}">Mark as Available</button>` :
               '<span class="action-disabled">Book is currently ' + book.status + '</span>'}
           </div>
         </div>
@@ -684,6 +738,10 @@ app.get('/my-books', requireAuth, async (req, res) => {
             background: #f44336;
             color: white;
           }
+          .mark-available-btn {
+            background: #4CAF50;
+            color: white;
+          }
           .no-books {
             text-align: center;
             padding: 40px 0;
@@ -767,6 +825,34 @@ app.get('/my-books', requireAuth, async (req, res) => {
               }
             });
           });
+
+          // Handle mark as available button clicks
+          document.querySelectorAll('.mark-available-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+              const bookId = this.dataset.id;
+              if (confirm('Mark this book as available for borrowing?')) {
+                try {
+                  const response = await fetch('/mark-available', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ bookId })
+                  });
+                  
+                  if (response.ok) {
+                    location.reload();
+                  } else {
+                    const result = await response.json();
+                    alert('Failed to mark book as available: ' + result.error);
+                  }
+                } catch (error) {
+                  console.error('Error marking book as available:', error);
+                  alert('An error occurred. Please try again.');
+                }
+              }
+            });
+          });
         </script>
       </body>
       </html>
@@ -784,7 +870,7 @@ app.post('/delete-book', requireAuth, async (req, res) => {
     const userId = req.session.user.id;
 
     await User.findByIdAndUpdate(userId, {
-      $pull: { myBooks: { _id: bookId } }
+      $pull: { myBooks: { _id: new mongoose.Types.ObjectId(bookId) } }
     });
 
     res.sendStatus(200);
@@ -803,8 +889,8 @@ app.get('/find-books', requireAuth, async (req, res) => {
     const users = await User.find({
       _id: { $ne: userId },
       'myBooks.status': 'available'
-    }).select('fullname userid myBooks address');
-    
+    }).select('fullname userid myBooks address _id'); // Make sure to include _id
+
     let booksHtml = '';
     
     if (users.length === 0) {
@@ -813,6 +899,14 @@ app.get('/find-books', requireAuth, async (req, res) => {
       users.forEach(user => {
         user.myBooks.forEach(book => {
           if (book.status === 'available') {
+            // Debug logging to check user data
+            console.log(`User ${user.fullname} (${user.userid}) address:`, user.address);
+            console.log(`User address type:`, typeof user.address);
+            console.log(`User address length:`, user.address ? user.address.length : 'undefined');
+            
+            const addressValue = user.address || 'Address not available';
+            console.log(`Final address value for data attribute:`, addressValue);
+            
             booksHtml += `
               <div class="book-card">
                 <div class="book-info">
@@ -820,19 +914,19 @@ app.get('/find-books', requireAuth, async (req, res) => {
                   <p><strong>Author:</strong> ${book.author}</p>
                   <p><strong>Owner:</strong> ${user.fullname}</p>
                   <p><strong>User ID:</strong> ${user.userid}</p>
-                  <p><strong>Address:</strong> ${user.address}</p>
+                  <p><strong>Address:</strong> ${user.address || 'Not provided'}</p>
                   ${book.description ? `<p><strong>Description:</strong> ${book.description}</p>` : ''}
                   ${book.isbn ? `<p><strong>ISBN:</strong> ${book.isbn}</p>` : ''}
                 </div>
                 <div class="book-actions">
                   <button class="btn request-btn" 
-                    data-book-id="${book._id}" 
-                    data-owner-id="${user._id}"
-                    data-book-title="${book.title}"
-                    data-book-author="${book.author}"
-                    data-owner-name="${user.fullname}"
-                    data-owner-userid="${user.userid}"
-                    data-owner-address="${user.address}">
+                    data-book-id="${book._id ? book._id.toString() : 'ERROR'}"
+                    data-owner-id="${user._id ? user._id.toString() : 'ERROR'}"
+                    data-book-title="${book.title || 'Unknown Title'}"
+                    data-book-author="${book.author || 'Unknown Author'}"
+                    data-owner-name="${user.fullname || 'Unknown Owner'}"
+                    data-owner-userid="${user.userid || 'N/A'}"
+                    data-owner-address="${addressValue}">
                     Request Book
                   </button>
                 </div>
@@ -842,6 +936,8 @@ app.get('/find-books', requireAuth, async (req, res) => {
         });
       });
     }
+
+    console.log("Generated book cards HTML:", booksHtml); // Add this line
 
     res.send(`
       <!DOCTYPE html>
@@ -969,14 +1065,12 @@ app.get('/find-books', requireAuth, async (req, res) => {
             margin-bottom: 5px;
             font-weight: bold;
           }
-          .form-group input, .form-group textarea {
+          .form-group textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 14px;
-          }
-          .form-group textarea {
             height: 80px;
             resize: vertical;
           }
@@ -1001,14 +1095,6 @@ app.get('/find-books', requireAuth, async (req, res) => {
             <h2>Request Book</h2>
             <form id="requestForm">
               <div class="form-group">
-                <label for="exchangeAddress">Exchange Address:</label>
-                <input type="text" id="exchangeAddress" name="exchangeAddress" required>
-              </div>
-              <div class="form-group">
-                <label for="exchangeTime">Preferred Exchange Time:</label>
-                <input type="datetime-local" id="exchangeTime" name="exchangeTime" required>
-              </div>
-              <div class="form-group">
                 <label for="message">Message (Optional):</label>
                 <textarea id="message" name="message" placeholder="Add a message for the book owner..."></textarea>
               </div>
@@ -1022,20 +1108,50 @@ app.get('/find-books', requireAuth, async (req, res) => {
           const span = document.getElementsByClassName('close')[0];
           let currentBookData = {};
 
-          // Open modal when request button is clicked
-          document.querySelectorAll('.request-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+          // Update event delegation to handle dynamically added content
+          document.body.addEventListener('click', function(e) {
+            if (e.target.classList.contains('request-btn')) {
+              const btn = e.target;
+              console.log("Request button dataset:", btn.dataset);
+              console.log("All dataset keys:", Object.keys(btn.dataset));
+              console.log("ownerAddress value:", btn.dataset.ownerAddress);
+              console.log("ownerAddress type:", typeof btn.dataset.ownerAddress);
+              console.log("ownerAddress length:", btn.dataset.ownerAddress ? btn.dataset.ownerAddress.length : 'undefined');
+              
+              // Verify all required attributes
+              const requiredAttrs = [
+                'bookId', 'ownerId', 'bookTitle', 'bookAuthor', 
+                'ownerName', 'ownerUserid'
+                // Temporarily removed 'ownerAddress' to test if this is the issue
+              ];
+              
+              const missingAttrs = requiredAttrs.filter(attr => !btn.dataset[attr] || btn.dataset[attr].trim() === '');
+              
+              if (missingAttrs.length > 0) {
+                console.error("Missing attributes in button:", missingAttrs, "Dataset:", btn.dataset);
+                console.error("Full dataset object:", JSON.stringify(btn.dataset, null, 2));
+                alert('Missing information: ' + missingAttrs.join(', '));
+                return;
+              }
+              
+              // Check address separately
+              if (!btn.dataset.ownerAddress || btn.dataset.ownerAddress.trim() === '') {
+                console.warn("Address is missing or empty, but continuing with request");
+              }
+              
               currentBookData = {
-                bookId: this.dataset.bookId,
-                ownerId: this.dataset.ownerId,
-                bookTitle: this.dataset.bookTitle,
-                bookAuthor: this.dataset.bookAuthor,
-                ownerName: this.dataset.ownerName,
-                ownerUserId: this.dataset.ownerUserid,
-                ownerAddress: this.dataset.ownerAddress
+                bookId: btn.dataset.bookId,
+                ownerId: btn.dataset.ownerId,
+                bookTitle: btn.dataset.bookTitle,
+                bookAuthor: btn.dataset.bookAuthor,
+                ownerName: btn.dataset.ownerName,
+                ownerUserId: btn.dataset.ownerUserid,
+                ownerAddress: btn.dataset.ownerAddress || 'Address not available'
               };
+              
+              console.log("Current book data:", currentBookData);
               modal.style.display = 'block';
-            });
+            }
           });
 
           // Close modal
@@ -1053,14 +1169,20 @@ app.get('/find-books', requireAuth, async (req, res) => {
           document.getElementById('requestForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // Check if we have valid book data
+            if (!currentBookData || !currentBookData.bookId || !currentBookData.ownerId) {
+              alert("Book information is missing. Please refresh the page and try again.");
+              return;
+            }
+            
             const formData = new FormData(this);
             const requestData = {
               ...currentBookData,
-              exchangeAddress: formData.get('exchangeAddress'),
-              exchangeTime: formData.get('exchangeTime'),
-              message: formData.get('message')
+              message: formData.get('message') || ''
             };
 
+            console.log("Submitting request data:", requestData);
+            
             try {
               const response = await fetch('/request-book', {
                 method: 'POST',
@@ -1069,9 +1191,9 @@ app.get('/find-books', requireAuth, async (req, res) => {
                 },
                 body: JSON.stringify(requestData)
               });
-
+              
               const result = await response.json();
-
+              
               if (response.ok) {
                 alert('✅ Book request sent successfully!');
                 modal.style.display = 'none';
@@ -1094,68 +1216,167 @@ app.get('/find-books', requireAuth, async (req, res) => {
   }
 });
 
-// Request Book Endpoint
+// Helper function for parsing IDs
+const parseId = (id) => {
+  if (typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) {
+    return new mongoose.Types.ObjectId(id);
+  }
+  if (id instanceof mongoose.Types.ObjectId) {
+    return id;
+  }
+  throw new Error(`Invalid ID format: ${id}`);
+};
+
+// Request Book Endpoint - Fixed with proper request creation
 app.post('/request-book', requireAuth, async (req, res) => {
   try {
-    const { bookId, ownerId, bookTitle, bookAuthor, ownerName, ownerUserId, ownerAddress, exchangeAddress, exchangeTime, message } = req.body;
+    const { bookId, ownerId, bookTitle, bookAuthor, ownerName, ownerUserId, ownerAddress, message } = req.body;
     const requesterId = req.session.user.id;
-    const requesterData = await User.findById(requesterId).select('fullname userid phone address');
+    
+    console.log(`[REQUEST] Requester: ${requesterId}, Owner: ${ownerId}, Book: ${bookId}`);
 
-    // Create request object
-    const bookRequest = {
-      bookId,
+    // Check if requester has enough credits
+    const requester = await User.findById(requesterId);
+    if (requester.credits < 1) {
+      return res.status(400).json({ error: 'You need at least 1 credit to request a book' });
+    }
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(bookId) || 
+        !mongoose.Types.ObjectId.isValid(ownerId)) {
+      console.error("Invalid ID format - Book:", bookId, "Owner:", ownerId);
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    const ownerIdObj = new mongoose.Types.ObjectId(ownerId);
+    const bookIdObj = new mongoose.Types.ObjectId(bookId);
+    const requesterIdObj = new mongoose.Types.ObjectId(requesterId);
+
+    // Get requester details
+    const requesterData = await User.findById(requesterIdObj).select('fullname userid phone address');
+    if (!requesterData) {
+      console.error("Requester not found:", requesterId);
+      return res.status(404).json({ error: 'Requester not found' });
+    }
+
+    // Verify book availability
+    const owner = await User.findOne({
+      _id: ownerIdObj,
+      'myBooks._id': bookIdObj,
+      'myBooks.status': 'available'
+    });
+
+    if (!owner) {
+      console.error("Book unavailable - Owner:", ownerId, "Book:", bookId);
+      
+      // Check if book exists at all
+      const bookExists = await User.findOne({
+        _id: ownerIdObj,
+        'myBooks._id': bookIdObj
+      });
+      
+      if (bookExists) {
+        const book = bookExists.myBooks.find(b => b._id.equals(bookIdObj));
+        console.error("Book status:", book ? book.status : 'not found');
+        return res.status(400).json({ 
+          error: `Book is no longer available (status: ${book?.status || 'unknown'})` 
+        });
+      }
+      
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    // Create request with shared ID
+    const requestId = new mongoose.Types.ObjectId();
+    const requestedAt = new Date();
+
+    // Create request objects
+    const ownerRequest = {
+      _id: requestId,
+      bookId: bookIdObj,
       bookTitle,
       bookAuthor,
-      ownerId,
-      ownerName,
-      ownerUserId,
-      ownerAddress,
-      requesterId,
+      requesterId: requesterIdObj,
       requesterName: requesterData.fullname,
       requesterUserId: requesterData.userid,
       requesterPhone: requesterData.phone,
       requesterAddress: requesterData.address,
-      exchangeAddress,
-      exchangeTime: new Date(exchangeTime),
+      status: 'pending',
       message: message || '',
-      status: 'pending'
+      requestedAt
     };
 
-    // Add request to both users' bookRequests arrays
-    await User.findByIdAndUpdate(ownerId, {
-      $push: { bookRequests: bookRequest }
-    });
+    const requesterRequest = {
+      _id: requestId,
+      bookId: bookIdObj,
+      bookTitle,
+      bookAuthor,
+      ownerId: ownerIdObj,
+      ownerName,
+      ownerUserId,
+      ownerAddress,
+      status: 'pending',
+      message: message || '',
+      requestedAt
+    };
 
-    await User.findByIdAndUpdate(requesterId, {
-      $push: { bookRequests: bookRequest }
-    });
+    // Transaction to update both users
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Update book status to 'requested'
-    await User.findOneAndUpdate(
-      { _id: ownerId, 'myBooks._id': bookId },
-      { $set: { 'myBooks.$.status': 'requested' } }
-    );
+    try {
+      console.log("Updating owner's requestedBooks...");
+      await User.updateOne(
+        { _id: ownerIdObj },
+        { $push: { requestedBooks: ownerRequest } },
+        { session }
+      );
 
-    res.json({ message: 'Book request sent successfully!' });
+      console.log("Updating requester's bookRequests...");
+      await User.updateOne(
+        { _id: requesterIdObj },
+        { $push: { bookRequests: requesterRequest } },
+        { session }
+      );
+
+      console.log("Updating book status to 'requested'...");
+      await User.updateOne(
+        { 
+          _id: ownerIdObj,
+          'myBooks._id': bookIdObj
+        },
+        { $set: { 'myBooks.$.status': 'requested' } },
+        { session }
+      );
+
+      await session.commitTransaction();
+      console.log("Request created successfully!");
+      res.json({ message: 'Book request sent successfully!' });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("Transaction error:", error);
+      res.status(500).json({ error: 'Failed to create request' });
+    } finally {
+      session.endSession();
+    }
+    
   } catch (error) {
-    console.error('Error sending book request:', error);
+    console.error('Request creation error:', error);
     res.status(500).json({ error: 'Failed to send book request' });
   }
 });
 
-// Book Requests Page
+// Book Requests Page - UPDATED with corrected logic
 app.get('/requests', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user.id;
-    const user = await User.findById(userId).select('bookRequests userid');
+    const user = await User.findById(userId).select('requestedBooks bookRequests userid fullname');
     
-    const incomingRequests = user.bookRequests.filter(req => 
-      req.ownerId.toString() === userId.toString() && req.status === 'pending'
-    );
+    // Incoming requests
+    const incomingRequests = user.requestedBooks.filter(req => req.status === 'pending');
     
-    const outgoingRequests = user.bookRequests.filter(req => 
-      req.requesterId.toString() === userId.toString()
-    );
+    // Outgoing requests
+    const outgoingRequests = user.bookRequests;
 
     let incomingHtml = '';
     let outgoingHtml = '';
@@ -1163,41 +1384,46 @@ app.get('/requests', requireAuth, async (req, res) => {
     if (incomingRequests.length === 0) {
       incomingHtml = '<p>No pending incoming requests.</p>';
     } else {
-      incomingHtml = incomingRequests.map(request => `
-        <div class="request-card">
-          <div class="request-info">
-            <h4>${request.bookTitle} by ${request.bookAuthor}</h4>
-            <p><strong>Requested by:</strong> ${request.requesterName} (${request.requesterUserId})</p>
-            <p><strong>Phone:</strong> ${request.requesterPhone}</p>
-            <p><strong>Requester Address:</strong> ${request.requesterAddress}</p>
-            <p><strong>Requested on:</strong> ${new Date(request.requestedAt).toLocaleDateString()}</p>
+      incomingRequests.forEach(request => {
+        incomingHtml += `
+          <div class="request-card">
+            <div class="request-info">
+              <h4>${request.bookTitle} by ${request.bookAuthor}</h4>
+              <p><strong>Requested by:</strong> ${request.requesterName} (${request.requesterUserId})</p>
+              <p><strong>Phone:</strong> ${request.requesterPhone}</p>
+              <p><strong>Address:</strong> ${request.requesterAddress}</p>
+              ${request.message ? `<p><strong>Message:</strong> ${request.message}</p>` : ''}
+              <p><strong>Requested on:</strong> ${new Date(request.requestedAt).toLocaleString()}</p>
+            </div>
+            <div class="request-actions">
+              <button class="btn accept-btn" data-request-id="${request._id}">Accept</button>
+              <button class="btn reject-btn" data-request-id="${request._id}">Reject</button>
+            </div>
           </div>
-          <div class="request-actions">
-            <button class="btn accept-btn" data-request-id="${request._id}">Accept</button>
-            <button class="btn reject-btn" data-request-id="${request._id}">Reject</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      });
     }
 
     if (outgoingRequests.length === 0) {
       outgoingHtml = '<p>No outgoing requests.</p>';
     } else {
-      outgoingHtml = outgoingRequests.map(request => `
-        <div class="request-card">
-          <div class="request-info">
-            <h4>${request.bookTitle} by ${request.bookAuthor}</h4>
-            <p><strong>Owner:</strong> ${request.ownerName} (${request.ownerUserId})</p>
-            <p><strong>Status:</strong> <span class="status ${request.status}">${request.status.toUpperCase()}</span></p>
-            ${request.status === 'accepted' ? `
-              <p><strong>Exchange Address:</strong> ${request.exchangeAddress}</p>
-              <p><strong>Exchange Time:</strong> ${new Date(request.exchangeTime).toLocaleString()}</p>
-            ` : ''}
-            ${request.message ? `<p><strong>Your Message:</strong> ${request.message}</p>` : ''}
-            <p><strong>Requested on:</strong> ${new Date(request.requestedAt).toLocaleDateString()}</p>
+      outgoingRequests.forEach(request => {
+        outgoingHtml += `
+          <div class="request-card">
+            <div class="request-info">
+              <h4>${request.bookTitle} by ${request.bookAuthor}</h4>
+              <p><strong>Owner:</strong> ${request.ownerName} (${request.ownerUserId})</p>
+              <p><strong>Status:</strong> <span class="status ${request.status}">${request.status.toUpperCase()}</span></p>
+              ${request.status === 'accepted' && request.exchangeAddress ? `
+                <p><strong>Exchange Address:</strong> ${request.exchangeAddress}</p>
+                <p><strong>Exchange Time:</strong> ${new Date(request.exchangeTime).toLocaleString()}</p>
+              ` : ''}
+              ${request.message ? `<p><strong>Your Message:</strong> ${request.message}</p>` : ''}
+              <p><strong>Requested on:</strong> ${new Date(request.requestedAt).toLocaleString()}</p>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      });
     }
 
     res.send(`
@@ -1364,12 +1590,12 @@ app.get('/requests', requireAuth, async (req, res) => {
           </div>
           
           <div class="section">
-            <h2>Incoming Requests</h2>
+            <h2>Incoming Requests (${incomingRequests.length})</h2>
             ${incomingHtml}
           </div>
           
           <div class="section">
-            <h2>My Requests</h2>
+            <h2>My Requests (${outgoingRequests.length})</h2>
             ${outgoingHtml}
           </div>
         </div>
@@ -1494,117 +1720,232 @@ app.get('/requests', requireAuth, async (req, res) => {
   }
 });
 
-// Accept Request with Exchange Details
+// Accept Request Endpoint - CORRECTED VERSION
 app.post('/accept-request', requireAuth, async (req, res) => {
   try {
     const { requestId, exchangeAddress, exchangeTime } = req.body;
     const userId = req.session.user.id;
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+    const requestIdObj = new mongoose.Types.ObjectId(requestId);
 
-    // Update request in owner's records
-    const ownerUpdate = await User.findOneAndUpdate(
-      { 
-        _id: userId, 
-        'bookRequests._id': requestId 
-      },
-      { 
-        $set: { 
-          'bookRequests.$.status': 'accepted',
-          'bookRequests.$.exchangeAddress': exchangeAddress,
-          'bookRequests.$.exchangeTime': new Date(exchangeTime)
-        } 
-      },
-      { new: true }
-    );
+    // Get owner and request details
+    const owner = await User.findOne({
+      _id: userIdObj,
+      'requestedBooks._id': requestIdObj
+    });
 
-    if (!ownerUpdate) {
-      return res.status(404).json({ error: 'Request not found for owner' });
+    if (!owner) return res.status(404).json({ error: 'Request not found' });
+
+    const request = owner.requestedBooks.find(req => req._id.equals(requestIdObj));
+    if (!request) return res.status(404).json({ error: 'Request details not found' });
+
+    // Get requester details
+    const requester = await User.findById(request.requesterId);
+    if (!requester) {
+      return res.status(404).json({ error: 'Requester not found' });
     }
 
-    // Find the request to get requester details
-    const request = ownerUpdate.bookRequests.find(req => req._id.toString() === requestId);
+    // Check requester has enough credits
+    if (requester.credits < 1) {
+      return res.status(400).json({ error: 'Requester does not have enough credits' });
+    }
+
+    // Transaction to update both parties
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Update owner's request
+      await User.updateOne(
+        {
+          _id: userIdObj,
+          'requestedBooks._id': requestIdObj
+        },
+        {
+          $set: {
+            'requestedBooks.$.status': 'accepted',
+            'requestedBooks.$.exchangeAddress': exchangeAddress,
+            'requestedBooks.$.exchangeTime': new Date(exchangeTime)
+          }
+        },
+        { session }
+      );
+
+      // Update requester's request
+      await User.updateOne(
+        {
+          _id: request.requesterId,
+          'bookRequests._id': requestIdObj
+        },
+        {
+          $set: {
+            'bookRequests.$.status': 'accepted',
+            'bookRequests.$.exchangeAddress': exchangeAddress,
+            'bookRequests.$.exchangeTime': new Date(exchangeTime)
+          }
+        },
+        { session }
+      );
+
+      // Update credits
+      await User.updateOne(
+        { _id: requester._id },
+        { $inc: { credits: -1 } },
+        { session }
+      );
+
+      await User.updateOne(
+        { _id: userIdObj },
+        { $inc: { credits: 1 } },
+        { session }
+      );
+
+      // Update book status to borrowed
+      await User.updateOne(
+        {
+          _id: userIdObj,
+          'myBooks._id': request.bookId
+        },
+        {
+          $set: { 'myBooks.$.status': 'borrowed' }
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      res.json({ message: 'Request accepted successfully!' });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("Acceptance error:", error);
+      res.status(500).json({ error: 'Failed to accept request' });
+    } finally {
+      session.endSession();
+    }
     
-    // Update request in requester's records
-    await User.findOneAndUpdate(
-      { 
-        _id: request.requesterId, 
-        'bookRequests._id': requestId 
-      },
-      { 
-        $set: { 
-          'bookRequests.$.status': 'accepted',
-          'bookRequests.$.exchangeAddress': exchangeAddress,
-          'bookRequests.$.exchangeTime': new Date(exchangeTime)
-        } 
-      }
-    );
-
-    // Update book status to 'borrowed'
-    await User.findOneAndUpdate(
-      { _id: userId, 'myBooks._id': request.bookId },
-      { $set: { 'myBooks.$.status': 'borrowed' } }
-    );
-
-    res.json({ message: 'Request accepted successfully!' });
   } catch (error) {
-    console.error('Error accepting request:', error);
+    console.error('Accept request error:', error);
     res.status(500).json({ error: 'Failed to accept request' });
   }
 });
 
-// Reject Request
+// Reject Request Endpoint - CORRECTED VERSION
 app.post('/reject-request', requireAuth, async (req, res) => {
   try {
     const { requestId } = req.body;
     const userId = req.session.user.id;
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+    const requestIdObj = new mongoose.Types.ObjectId(requestId);
 
-    // Update request in owner's records
-    const ownerUpdate = await User.findOneAndUpdate(
-      { 
-        _id: userId, 
-        'bookRequests._id': requestId 
-      },
-      { 
-        $set: { 
-          'bookRequests.$.status': 'rejected'
-        } 
-      },
-      { new: true }
-    );
+    // Find owner's request
+    const owner = await User.findOne({
+      _id: userIdObj,
+      'requestedBooks._id': requestIdObj
+    });
 
-    if (!ownerUpdate) {
-      return res.status(404).json({ error: 'Request not found for owner' });
+    if (!owner) return res.status(404).json({ error: 'Request not found' });
+
+    const request = owner.requestedBooks.find(req => req._id.equals(requestIdObj));
+    if (!request) return res.status(404).json({ error: 'Request details not found' });
+
+    // Transaction to update both parties
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Update owner's request status to rejected
+      await User.updateOne(
+        {
+          _id: userIdObj,
+          'requestedBooks._id': requestIdObj
+        },
+        {
+          $set: { 'requestedBooks.$.status': 'rejected' }
+        },
+        { session }
+      );
+
+      // Update requester's request status to rejected
+      await User.updateOne(
+        {
+          _id: request.requesterId,
+          'bookRequests._id': requestIdObj
+        },
+        {
+          $set: { 'bookRequests.$.status': 'rejected' }
+        },
+        { session }
+      );
+
+      // Revert book status to available
+      await User.updateOne(
+        {
+          _id: userIdObj,
+          'myBooks._id': request.bookId
+        },
+        {
+          $set: { 'myBooks.$.status': 'available' }
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      res.json({ message: 'Request rejected successfully!' });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("Rejection error:", error);
+      res.status(500).json({ error: 'Failed to reject request' });
+    } finally {
+      session.endSession();
     }
-
-    // Find the request to get requester details
-    const request = ownerUpdate.bookRequests.find(req => req._id.toString() === requestId);
     
-    // Update request in requester's records
-    await User.findOneAndUpdate(
-      { 
-        _id: request.requesterId, 
-        'bookRequests._id': requestId 
-      },
-      { 
-        $set: { 
-          'bookRequests.$.status': 'rejected'
-        } 
-      }
-    );
-
-    // Update book status back to 'available'
-    await User.findOneAndUpdate(
-      { _id: userId, 'myBooks._id': request.bookId },
-      { $set: { 'myBooks.$.status': 'available' } }
-    );
-
-    res.json({ message: 'Request rejected successfully!' });
   } catch (error) {
-    console.error('Error rejecting request:', error);
+    console.error('Reject request error:', error);
     res.status(500).json({ error: 'Failed to reject request' });
   }
 });
 
-// Start server
+// Mark Book as Available Endpoint
+app.post('/mark-available', requireAuth, async (req, res) => {
+  try {
+    const { bookId } = req.body;
+    const userId = req.session.user.id;
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+    const bookIdObj = new mongoose.Types.ObjectId(bookId);
+
+    // Find the book in user's collection
+    const user = await User.findOne({
+      _id: userIdObj,
+      'myBooks._id': bookIdObj
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Book not found in your collection' });
+    }
+
+    const book = user.myBooks.find(b => b._id.equals(bookIdObj));
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    // Update book status to available
+    await User.updateOne(
+      {
+        _id: userIdObj,
+        'myBooks._id': bookIdObj
+      },
+      {
+        $set: { 'myBooks.$.status': 'available' }
+      }
+    );
+
+    res.json({ message: 'Book marked as available successfully!' });
+  } catch (error) {
+    console.error('Mark available error:', error);
+    res.status(500).json({ error: 'Failed to mark book as available' });
+  }
+});
+
+// Start server 
 app.listen(port, () => {
   console.log("🚀 ReadCycle server running on http://localhost:" + port);
   console.log("📚 Ready to connect book lovers!");
