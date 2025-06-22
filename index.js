@@ -7,10 +7,11 @@ const session = require('express-session');
 const cors = require('cors');
 
 const app = express();
-const port = 3019;
+const port = process.env.PORT || 3019;
 
 // Connect to MongoDB
-mongoose.connect("mongodb+srv://HetviK2208:HetviK9909855402@cluster0.ih1tunm.mongodb.net/ReadCycle", {
+const mongoURI = process.env.MONGODB_URI || "mongodb+srv://HetviK2208:HetviK9909855402@cluster0.ih1tunm.mongodb.net/ReadCycle";
+mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log("✅ MongoDB connected"))
@@ -22,13 +23,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session middleware
+// Session middleware with secure configuration for production
 app.use(session({
-  secret: 'your-secret-key-here',
+  secret: process.env.SESSION_SECRET || 'your-secret-key-here',
   resave: true,
   saveUninitialized: false,
   cookie: { 
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
   },
@@ -163,6 +164,19 @@ app.post('/signup', async (req, res) => {
     return res.status(400).json({ error: "All fields are required." });
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "Please enter a valid email address." });
+  }
+
+  // Validate phone number format (accepts various formats)
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  const cleanPhone = no.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
+  if (!phoneRegex.test(cleanPhone)) {
+    return res.status(400).json({ error: "Please enter a valid phone number." });
+  }
+
   // Validate password match
   if (password !== verifyPassword) {
     return res.status(400).json({ error: "Passwords do not match." });
@@ -173,9 +187,21 @@ app.post('/signup', async (req, res) => {
     return res.status(400).json({ error: "Password must be at least 8 characters long." });
   }
 
+  // Validate user ID format (alphanumeric, 3-20 characters)
+  const useridRegex = /^[a-zA-Z0-9]{3,20}$/;
+  if (!useridRegex.test(userid)) {
+    return res.status(400).json({ error: "User ID must be 3-20 characters long and contain only letters and numbers." });
+  }
+
+  // Validate full name (letters, spaces, hyphens, apostrophes)
+  const nameRegex = /^[a-zA-Z\s\-']{2,50}$/;
+  if (!nameRegex.test(fullname.trim())) {
+    return res.status(400).json({ error: "Please enter a valid full name (2-50 characters, letters only)." });
+  }
+
   try {
     // Check for existing user before attempting to save
-    const duplicateField = await checkExistingUser(userid, no, email);
+    const duplicateField = await checkExistingUser(userid, cleanPhone, email);
     if (duplicateField) {
       return res.status(400).json({ 
         error: `${duplicateField} is already registered. Please use a different one.`
@@ -183,11 +209,11 @@ app.post('/signup', async (req, res) => {
     }
 
     const newUser = new User({
-      fullname,
+      fullname: fullname.trim(),
       userid,
-      phone: no,
-      email,
-      address,
+      phone: cleanPhone,
+      email: email.toLowerCase().trim(),
+      address: address.trim(),
       password,
       credits: 20,
       myBooks: [],
@@ -213,7 +239,6 @@ app.post('/signup', async (req, res) => {
       const duplicatedField = Object.keys(error.keyPattern)[0];
       let fieldName = duplicatedField;
       
-      // Make field names more user-friendly
       if (duplicatedField === 'phone') fieldName = 'Phone number';
       if (duplicatedField === 'userid') fieldName = 'User ID';
       if (duplicatedField === 'email') fieldName = 'Email';
