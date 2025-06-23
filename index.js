@@ -985,54 +985,61 @@ app.get('/find-books', requireAuth, async (req, res) => {
     
     // Build the base query
     let query = {
-      _id: { $ne: userId },
-      'myBooks.status': 'available'
+      _id: { $ne: userId }
     };
-    
+
+    // Build a single $elemMatch for all book filters
+    let bookElemMatch = { status: 'available' };
+    let hasBookFilter = false;
+
     // Add search filter (searches in title, author, and description)
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
-      query['myBooks'] = {
-        $elemMatch: {
-          status: 'available',
-          $or: [
-            { title: searchRegex },
-            { author: searchRegex },
-            { description: searchRegex }
-          ]
-        }
-      };
+      bookElemMatch.$or = [
+        { title: searchRegex },
+        { author: searchRegex },
+        { description: searchRegex }
+      ];
+      hasBookFilter = true;
     }
-    
+
     // Add genre filter
     if (genre && genre.trim()) {
-      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
-      query['myBooks.$elemMatch.genre'] = new RegExp(genre.trim(), 'i');
+      bookElemMatch.genre = new RegExp(genre.trim(), 'i');
+      hasBookFilter = true;
     }
-    
+
     // Add author filter
     if (author && author.trim()) {
-      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
-      query['myBooks.$elemMatch.author'] = new RegExp(author.trim(), 'i');
+      bookElemMatch.author = new RegExp(author.trim(), 'i');
+      hasBookFilter = true;
     }
-    
+
+    // Add condition filter
+    if (condition && condition.trim()) {
+      bookElemMatch.condition = new RegExp(condition.trim(), 'i');
+      hasBookFilter = true;
+    }
+
+    // Add availability filter (though all books shown are available, this could be for future use)
+    if (availability && availability !== 'all') {
+      bookElemMatch.status = availability;
+      hasBookFilter = true;
+    }
+
+    // Only add $elemMatch if any book filter is set
+    if (hasBookFilter) {
+      query.myBooks = { $elemMatch: bookElemMatch };
+    } else {
+      // If no book filter, just require at least one available book
+      query['myBooks.status'] = 'available';
+    }
+
     // Add location filter (searches in user's address)
     if (location && location.trim()) {
       query.address = new RegExp(location.trim(), 'i');
     }
-    
-    // Add condition filter (searches in book condition field)
-    if (condition && condition.trim()) {
-      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
-      query['myBooks.$elemMatch.condition'] = new RegExp(condition.trim(), 'i');
-    }
-    
-    // Add availability filter (though all books shown are available, this could be for future use)
-    if (availability && availability !== 'all') {
-      if (!query['myBooks']) query['myBooks'] = { $elemMatch: { status: 'available' } };
-      query['myBooks.$elemMatch.status'] = availability;
-    }
-    
+
     // Find all books from other users that match the filters
     const users = await User.find(query).select('fullname userid myBooks address _id requestedBooks');
 
