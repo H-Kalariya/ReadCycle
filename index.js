@@ -9,6 +9,11 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3019;
 
+// Set trust proxy if in production (needed for correct session/cookie handling behind proxies)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Connect to MongoDB
 const mongoURI = process.env.MONGODB_URI || "mongodb+srv://HetviK2208:HetviK9909855402@cluster0.ih1tunm.mongodb.net/ReadCycle";
 mongoose.connect(mongoURI, {
@@ -33,6 +38,7 @@ app.use(session({
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
   },
+  // IMPORTANT: For production, use a persistent session store like connect-mongo or connect-redis
   store: new session.MemoryStore()
 }));
 
