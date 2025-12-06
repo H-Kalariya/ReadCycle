@@ -1,0 +1,67 @@
+app.post('/add-book', requireAuth, async (req, res) => {
+  try {
+    const { title, author, genre, condition, coverImage, description } = req.body;
+    const userId = req.session.user.id;
+
+    console.log('📚 ADD BOOK:', { title, hasCover: !!coverImage });
+
+    if (!title || !author) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Title and author are required' 
+      });
+    }
+
+    let finalCoverImage = coverImage || '';
+    let finalDescription = description || '';
+
+    // If no cover provided, try to fetch automatically
+    if (!finalCoverImage) {
+      console.log('🔍 Auto-fetching cover...');
+      try {
+        const bookData = await fetchBookCover(title, author);
+        if (bookData.success && bookData.coverImage) {
+          finalCoverImage = bookData.coverImage;
+          console.log('✅ Cover found:', finalCoverImage.substring(0, 50));
+        }
+        if (bookData.description && !finalDescription) {
+          finalDescription = bookData.description.substring(0, 500);
+        }
+      } catch (error) {
+        console.error('❌ Auto-fetch failed:', error.message);
+      }
+    } else {
+      console.log('✅ Using manual cover:', finalCoverImage.substring(0, 50));
+    }
+
+    // Create new book with cover
+    const newBook = {
+      _id: new mongoose.Types.ObjectId(),
+      title,
+      author,
+      genre: genre || 'Not specified',
+      condition: condition || 'Good',
+      coverImage: finalCoverImage,
+      description: finalDescription,
+      status: 'available',
+      addedAt: new Date()
+    };
+
+    console.log('💾 Saving book with cover:', !!newBook.coverImage);
+
+    await User.findByIdAndUpdate(
+      userId,
+      { $push: { myBooks: newBook } }
+    );
+
+    res.json({
+      success: true,
+      message: 'Book added successfully!',
+      book: newBook,
+      coverFound: !!newBook.coverImage
+    });
+  } catch (error) {
+    console.error('❌ Error adding book:', error);
+    res.status(500).json({ error: 'Failed to add book' });
+  }
+});
