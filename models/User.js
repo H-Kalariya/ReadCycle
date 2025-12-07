@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
         condition: { type: String }, // Added condition field
         isbn: { type: String },
         description: { type: String },
+        coverImage: { type: String, default: '/images/default-cover.jpg' },
         status: {
             type: String,
             enum: ['available', 'borrowed', 'requested'],

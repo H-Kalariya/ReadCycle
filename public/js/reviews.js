@@ -179,8 +179,13 @@ class BookRecommendationSystem {
             safeCoverUrl = 'https:' + safeCoverUrl.split(':')[1];
         }
 
+        // Create a default Google Books search URL if previewLink is not available
+        const googleBooksUrl = book.previewLink || `https://www.google.com/search?tbm=bks&q=${encodeURIComponent(book.bookTitle + ' ' + (book.bookAuthor || ''))}`;
+        
         return `
-            <div class="recommendation-card" style="margin-bottom: 20px; border: 1px solid #eee; padding: 15px; border-radius: 5px;">
+            <div class="recommendation-card" 
+                 style="margin-bottom: 20px; border: 1px solid #eee; padding: 15px; border-radius: 5px; cursor: pointer;"
+                 onclick="window.open('${googleBooksUrl}', '_blank')">
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 0 0 100px;">
                         <img src="${safeCoverUrl}" alt="${book.bookTitle}" style="width: 100%; height: auto; border-radius: 3px;">
@@ -196,7 +201,7 @@ class BookRecommendationSystem {
                         ${book.genre ? `<div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">${book.genre}</div>` : ''}
                         ${book.matchReason ? `<div style="font-size: 0.8em; color: #27ae60; margin-bottom: 5px;">${book.matchReason}</div>` : ''}
                         ${book.description ? `<div style="font-size: 0.9em; color: #555; margin-top: 8px;">${book.description}</div>` : ''}
-                        ${book.previewLink ? `<a href="${book.previewLink}" target="_blank" style="font-size: 0.85em; color: #3498db; text-decoration: none; display: inline-block; margin-top: 8px;">Preview →</a>` : ''}
+                        <div style="font-size: 0.85em; color: #3498db; text-decoration: none; display: inline-block; margin-top: 8px;">View on Google Books →</div>
                     </div>
                 </div>
             </div>

@@ -7,7 +7,8 @@ const axios = require('axios');
 const session = require('express-session');
 const cors = require('cors');
 const BookReview = require('./models/BookReview');
-const { fetchBookCover, searchIndianBooks, getIndianAuthorRecommendations, isIndianAuthor } = require('./utils/googleBooksApi');
+const { fetchBookCover } = require('./utils/googleBooksApi');
+const { searchIndianBooks, getIndianAuthorRecommendations, isIndianAuthor } = require('./utils/googleBooksApi');
 
 const app = express();
 const port = process.env.PORT || 3020;
@@ -27,8 +28,8 @@ mongoose.connect(mongoURI, {
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Session middleware with secure configuration for production
@@ -47,6 +48,17 @@ app.use(session({
 
 // Enhanced user schema with requestedBooks field
 const User = require('./models/User');
+
+// Helper function to escape HTML
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // Function to check for existing user
 async function checkExistingUser(userid, phone, email) {
@@ -149,6 +161,7 @@ app.post('/signup', async (req, res) => {
       password,
       credits: 20,
       myBooks: [],
+      myReads: [], // Make sure this field exists
       requestedBooks: [],
       bookRequests: []
     });
@@ -585,138 +598,9 @@ app.get('/add-book', requireAuth, (req, res) => {
           </div>
           <button type="submit">Add to My Collection</button>
         </form>
-        <div id="response-message" class="response-message"></div>
       </div>
 
-      <script>
-        // Fetch book cover functionality
-        document.getElementById('fetch-cover-btn').addEventListener('click', async function() {
-          const title = document.getElementById('title').value;
-          const author = document.getElementById('author').value;
-          
-          if (!title) {
-            alert('Please enter a book title first');
-            return;
-          }
-          
-          const fetchBtn = document.getElementById('fetch-cover-btn');
-          const coverPreview = document.getElementById('cover-preview');
-          const coverImage = document.getElementById('cover-image');
-          const coverStatus = document.getElementById('cover-status');
-          const coverImageInput = document.getElementById('coverImage');
-          
-          fetchBtn.textContent = '⏳ Searching...';
-          fetchBtn.disabled = true;
-          
-          try {
-            const response = await fetch('/api/fetch-book-cover', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({ title, author })
-            });
-            
-            if (!response.ok) {
-              throw new Error(\`HTTP error! status: \${response.status}\`);
-            }
-            
-            const result = await response.json();
-            console.log('API Response:', result);
-            
-            if (result.success) {
-              if (result.coverImage) {
-                coverImage.src = result.coverImage;
-                coverImage.style.display = 'block';
-                coverImageInput.value = result.coverImage;
-                coverStatus.textContent = 'Found: ' + (result.title || title);
-                coverStatus.style.color = '#155724';
-                
-                // Auto-fill description if available
-                if (result.description && !document.getElementById('description').value) {
-                  document.getElementById('description').value = result.description.substring(0, 500);
-                }
-              } else {
-                coverStatus.textContent = 'No cover image available for this book';
-                coverStatus.style.color = '#721c24';
-                coverImage.style.display = 'none';
-              }
-            } else {
-              coverStatus.textContent = result.message || 'No book found matching the search criteria';
-              coverStatus.style.color = '#721c24';
-              coverImage.style.display = 'none';
-            }
-            
-            coverPreview.style.display = 'block';
-          } catch (error) {
-            console.error('Error fetching cover:', error);
-            coverStatus.textContent = 'Error fetching cover. Please try again.';
-            if (error.message.includes('Failed to fetch')) {
-              coverStatus.textContent += ' (Network error - check console for details)';
-            }
-            coverStatus.style.color = '#721c24';
-            coverPreview.style.display = 'block';
-            coverImage.style.display = 'none';
-            
-            // Show error message to user
-            const responseMessage = document.getElementById('response-message');
-            responseMessage.textContent = 'Error: Could not load book cover. Please try again.';
-            responseMessage.className = 'response-message error';
-            responseMessage.style.display = 'block';
-          } finally {
-            fetchBtn.textContent = '🔍 Find Book Cover';
-            fetchBtn.disabled = false;
-          }
-        });
-
-        // Handle form submission
-        document.getElementById('add-book-form').addEventListener('submit', async function(e) {
-          e.preventDefault();
-          
-          const formData = new FormData(this);
-          const requestData = Object.fromEntries(formData);
-          
-          try {
-            const response = await fetch('/add-book', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(requestData)
-            });
-            
-            const result = await response.json();
-            
-            const responseMessage = document.getElementById('response-message');
-            if (response.ok) {
-              responseMessage.textContent = '✅ ' + result.message;
-              responseMessage.className = 'response-message success';
-              responseMessage.style.display = 'block';
-              
-              // Reset form after successful submission
-              setTimeout(() => {
-                document.getElementById('add-book-form').reset();
-                document.getElementById('cover-image').style.display = 'none';
-                document.getElementById('coverImage').value = '';
-                document.getElementById('cover-status').textContent = 'Click "Find Book Cover" to search for this book\'s cover image';
-                document.getElementById('cover-status').style.color = '#888';
-                responseMessage.style.display = 'none';
-              }, 2000);
-            } else {
-              responseMessage.textContent = '❌ ' + result.error;
-              responseMessage.className = 'response-message error';
-              responseMessage.style.display = 'block';
-            }
-          } catch (error) {
-            console.error('Error adding book:', error);
-            const responseMessage = document.getElementById('response-message');
-            responseMessage.textContent = 'An error occurred. Please try again.';
-            responseMessage.className = 'response-message error';
-            responseMessage.style.display = 'block';
-          }
-        });
-      </script>
+      <script src="/js/add-book.js"></script>
     </body>
     </html>
   `);
@@ -758,15 +642,22 @@ app.get('/api/fetch-book-cover', async (req, res) => {
 
 // Add Book Endpoint
 app.post('/add-book', requireAuth, async (req, res) => {
+  console.log('Received add-book request:', req.body);
+  
   try {
     const { title, author, genre, condition, coverImage, description } = req.body;
     const userId = req.session.user.id;
 
+    console.log('Session user ID:', userId);
+    console.log('Book details:', { title, author, genre, condition, coverImage: coverImage ? 'cover image provided' : 'no cover image' });
+
     // Validate required fields
     if (!title || !author) {
+      const errorMsg = 'Title and author are required';
+      console.error('Validation error:', errorMsg);
       return res.status(400).json({
         success: false,
-        error: 'Title and author are required'
+        error: errorMsg
       });
     }
 
@@ -1250,9 +1141,6 @@ app.get('/find-books', requireAuth, async (req, res) => {
               ${book.description ? `<p><strong>Description:</strong> ${book.description}</p>` : ''}
             </div>
             <div class="book-actions">
-              <a href="/book/${book._id.toString()}" class="btn" style="background-color: #4CAF50; margin-right: 10px;">
-                View Details & Reviews
-              </a>
               <button class="btn request-btn" 
                 data-book-id="${book._id.toString()}"
                 data-owner-id="${book.owner._id.toString()}"
@@ -3231,22 +3119,31 @@ class ContentRecommender {
   }
 }
 
-// My Reads & Recommendations Page
+// Initialize Content Recommender
+const contentRecommender = new ContentRecommender();
+
+// My Reads & Recommendations Page - FIXED VERSION
 app.get('/my-reads', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.user.id);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+    
     const myReads = user.myReads || [];
-
-    const myReadsHtml = myReads.length > 0 ? myReads.map(read => `
+    
+    // Generate HTML for user's reads
+    const myReadsHtml = myReads.length > 0 ? myReads.map((read) => `
       <div class="read-card">
-        <h3>${read.title}</h3>
-        <p><strong>Author:</strong> ${read.author}</p>
-        <p><strong>Genre:</strong> ${read.genre}</p>
+        <h3>${escapeHtml(read.title)}</h3>
+        <p><strong>Author:</strong> ${escapeHtml(read.author)}</p>
+        ${read.genre ? `<p><strong>Genre:</strong> ${escapeHtml(read.genre)}</p>` : ''}
         <p class="read-date">Read on ${new Date(read.readAt).toLocaleDateString()}</p>
         <div class="ideas-section">
           <strong>Key Takeaways:</strong>
-          <p>${read.ideas}</p>
+          <p>${read.ideas ? escapeHtml(read.ideas).replace(/\n/g, '<br>') : 'No key takeaways added.'}</p>
         </div>
+        <button onclick="deleteRead('${read._id}')" class="delete-btn" style="margin-top: 10px; background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
       </div>
     `).join('') : '<p class="no-reads">No books logged yet. Add your first read to get recommendations!</p>';
 
@@ -3356,29 +3253,65 @@ app.get('/my-reads', requireAuth, async (req, res) => {
             }
 
             .recommendation-card {
+              background: #f8f9fa;
+              border-radius: 10px;
+              padding: 20px;
               border-left: 5px solid #FF9800;
               position: relative;
             }
-            .match-badge {
+            .book-cover-container {
+              text-align: center;
+              margin-bottom: 15px;
+            }
+            .book-cover {
+              max-width: 100%;
+              height: 200px;
+              object-fit: cover;
+              border-radius: 4px;
+            }
+            .no-cover {
+              height: 200px;
+              background: #e0e0e0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 4px;
+              color: #666;
+            }
+            .book-info {
+              text-align: center;
+            }
+            .book-title {
+              margin-top: 0;
+              margin-bottom: 8px;
+              color: #2c3e50;
+            }
+            .book-author {
+              color: #666;
+              margin-bottom: 10px;
+              font-size: 0.9em;
+            }
+            .book-rating {
+              color: #ffc107;
+              margin-bottom: 10px;
+            }
+            .recommendation-badge {
               position: absolute;
               top: 10px;
               right: 10px;
               background: #FF9800;
               color: white;
-              padding: 5px 10px;
-              border-radius: 15px;
-              font-size: 12px;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 10px;
               font-weight: bold;
             }
 
-            .btn {
-              background: #2196F3;
-              color: white;
-              padding: 8px 15px;
-              border-radius: 5px;
-              text-decoration: none;
-              display: inline-block;
-              margin-top: 10px;
+            .no-reads {
+              text-align: center;
+              padding: 40px 0;
+              font-size: 16px;
+              color: #666;
             }
           </style>
         </head>
@@ -3408,11 +3341,8 @@ app.get('/my-reads', requireAuth, async (req, res) => {
                 <h3>Recommended for You</h3>
                 <p>Based on your reading history and key takeaways.</p>
               </div>
-              <div id="recommendations-container" class="recommendations-container"></div>
-              <div class="indian-books-section" style="margin-top: 30px;">
-                <h3 style="color: #FF9800; border-bottom: 2px solid #FF9800; padding-bottom: 10px;">📚 Discover Indian Books</h3>
-                <p>Explore popular books by renowned Indian authors</p>
-                <div id="indian-books-container" class="recommendations-grid"></div>
+              <div id="recommendations-container" class="recommendations-container">
+                <p>Click the "Smart Picks" tab to load recommendations...</p>
               </div>
             </div>
 
@@ -3433,96 +3363,106 @@ app.get('/my-reads', requireAuth, async (req, res) => {
               document.getElementById(tabName).style.display = "block";
               document.getElementById(tabName).classList.add("active");
               evt.currentTarget.classList.add("active");
+              
+              // If opening Smart Picks, load recommendations
+              if (tabName === 'smart-picks') {
+                loadRecommendations();
+              }
             }
             
-            // Fetch smart recommendations when tab is opened
-            const smartPicksTab = document.querySelector('[onclick*="smart-picks"]');
-            if (smartPicksTab) {
-              smartPicksTab.addEventListener('click', function() {
-                fetchSmartRecommendations();
-                fetchIndianBooks();
-              });
-            }
-            
-            async function fetchSmartRecommendations() {
-              const recommendationsContainer = document.getElementById('recommendations-container');
-              if (!recommendationsContainer) return;
+            async function loadRecommendations() {
+              const container = document.getElementById('recommendations-container');
+              if (!container) return;
               
-              if (recommendationsContainer.innerHTML) return;
-              
-              recommendationsContainer.innerHTML = '<p>Loading personalized recommendations...</p>';
+              // Show loading state
+              container.innerHTML = '<p>Loading recommendations...</p>';
               
               try {
                 const response = await fetch('/api/smart-recommendations');
+                if (!response.ok) throw new Error('Failed to fetch recommendations');
+                
                 const recommendations = await response.json();
                 
-                if (recommendations && recommendations.length > 0) {
-                  recommendationsContainer.innerHTML = '<div class="recommendations-grid">' + 
-                    recommendations.map(book => '<div class="recommendation-card read-card" style="position: relative; border-left: 5px solid ' + (book.recommendationType === 'Same Author' ? '#2196F3' : book.recommendationType === 'Indian Author' ? '#FF6F00' : '#4CAF50') + ';"><img src="' + (book.coverImage || '') + '" alt="' + book.title + '" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; display: ' + (book.coverImage ? 'block' : 'none') + ';"><h4 style="margin: 5px 0; font-size: 1em;">' + book.title + '</h4><p style="color: #666; margin: 5px 0; font-size: 0.9em;"><strong>By:</strong> ' + book.authors.join(', ') + '</p>' + (book.averageRating ? '<p style="color: #ffc107; margin: 5px 0;">' + '★'.repeat(Math.round(book.averageRating)) + '☆'.repeat(5 - Math.round(book.averageRating)) + ' (' + book.averageRating.toFixed(1) + ')</p>' : '') + (book.description ? '<p style="font-size: 0.85em; color: #666; margin-top: 10px; line-height: 1.4;">' + book.description.substring(0, 120) + '...</p>' : '') + '<span style="position: absolute; top: 10px; right: 10px; background: ' + (book.recommendationType === 'Same Author' ? '#2196F3' : book.recommendationType === 'Indian Author' ? '#FF9800' : '#4CAF50') + '; color: white; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">' + (book.matchReason || book.recommendationType) + '</span></div>').join('') + '</div>';
-                } else {
-                  recommendationsContainer.innerHTML = '<p>Add some books to your collection or log your reads to get personalized recommendations!</p>';
+                if (!recommendations || recommendations.length === 0) {
+                  container.innerHTML = [
+                    '<div class="no-recommendations">',
+                    '  <p>No recommendations found. Add more books to your reads to get personalized recommendations!</p>',
+                    '</div>'
+                  ].join('');
+                  return;
                 }
+                
+                // Clear loading state and render recommendations
+                let recommendationsHTML = '<div class="recommendations-grid">';
+                
+                recommendations.forEach(book => {
+                  const authorText = book.authors && book.authors.length > 0 
+                    ? Array.isArray(book.authors) ? book.authors.join(', ') : book.authors
+                    : 'Unknown';
+                  
+                  let ratingHTML = '';
+                  if (book.averageRating) {
+                    const fullStars = '★'.repeat(Math.round(book.averageRating));
+                    const emptyStars = '☆'.repeat(5 - Math.round(book.averageRating));
+                    ratingHTML = '<div class="book-rating">' + 
+                      fullStars + emptyStars +
+                      '<span>(' + book.averageRating.toFixed(1) + ')</span>' +
+                      '</div>';
+                  }
+                  
+                  const bookCover = book.coverImage 
+                    ? '<img src="' + book.coverImage + '" alt="' + (book.title || 'Book cover') + '" class="book-cover">'
+                    : '<div class="no-cover">No cover available</div>';
+                  
+                  const recommendationBadge = book.recommendationType 
+                    ? '<span class="recommendation-badge">' + book.recommendationType + '</span>' 
+                    : '';
+                  
+                  recommendationsHTML += [
+                    '<div class="recommendation-card">',
+                    '  <div class="book-cover-container">', bookCover, '</div>',
+                    '  <div class="book-info">',
+                    '    <h4 class="book-title">', (book.title || 'Untitled Book'), '</h4>',
+                    '    <p class="book-author">By: ', authorText, '</p>',
+                    '    ', ratingHTML,
+                    '    ', (recommendationBadge || ''),
+                    '  </div>',
+                    '</div>'
+                  ].join('');
+                });
+                
+                recommendationsHTML += '</div>';
+                container.innerHTML = recommendationsHTML;
               } catch (error) {
-                console.error('Error fetching recommendations:', error);
-                recommendationsContainer.innerHTML = '<p>Error loading recommendations. Please try again later.</p>';
+                console.error('Error loading recommendations:', error);
+                container.innerHTML = '<p>Failed to load recommendations. Please try again later.</p>';
               }
             }
             
-            async function fetchIndianBooks() {
-              const indianBooksContainer = document.getElementById('indian-books-container');
-              if (!indianBooksContainer) return;
-              
-              if (indianBooksContainer.innerHTML) return;
-              
-              indianBooksContainer.innerHTML = '<p>Loading Indian book recommendations...</p>';
+            async function deleteRead(readId) {
+              if (!confirm('Are you sure you want to delete this read?')) return;
               
               try {
-                const response = await fetch('/api/indian-books');
-                const books = await response.json();
+                const response = await fetch('/delete-read', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ readId })
+                });
                 
-                if (books && books.length > 0) {
-                  indianBooksContainer.innerHTML = books.map(book => '<div class="recommendation-card read-card" style="position: relative; border-left: 5px solid #FF6F00;"><img src="' + (book.coverImage || '') + '" alt="' + book.title + '" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; display: ' + (book.coverImage ? 'block' : 'none') + ';"><h4 style="margin: 5px 0; font-size: 1em;">' + book.title + '</h4><p style="color: #666; margin: 5px 0; font-size: 0.9em;"><strong>By:</strong> ' + book.authors.join(', ') + '</p>' + (book.averageRating ? '<p style="color: #ffc107; margin: 5px 0;">' + '★'.repeat(Math.round(book.averageRating)) + '☆'.repeat(5 - Math.round(book.averageRating)) + ' (' + book.averageRating.toFixed(1) + ')</p>' : '') + (book.description ? '<p style="font-size: 0.85em; color: #666; margin-top: 10px; line-height: 1.4;">' + book.description.substring(0, 120) + '...</p>' : '') + '<span style="position: absolute; top: 10px; right: 10px; background: #FF9800; color: white; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">Indian Author</span></div>').join('');
+                if (response.ok) {
+                  location.reload();
                 } else {
-                  indianBooksContainer.innerHTML = '<p>No Indian books found at the moment.</p>';
+                  const result = await response.json();
+                  alert('Error: ' + result.error);
                 }
               } catch (error) {
-                console.error('Error fetching Indian books:', error);
-                indianBooksContainer.innerHTML = '<p>Error loading Indian books. Please try again later.</p>';
+                console.error('Error deleting read:', error);
+                alert('An error occurred. Please try again.');
               }
             }
           </script>
-          <style>
-            .recommendations-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 20px;
-                margin-top: 20px;
-            }
-            .recommendation-card {
-                background: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                display: flex;
-                flex-direction: column;
-                height: 100%;
-            }
-            .recommendation-card img {
-                width: 100%;
-                height: 300px;
-                object-fit: cover;
-                border-radius: 4px;
-                margin-bottom: 10px;
-            }
-            .recommendation-title {
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-            .recommendation-rating {
-                color: #ffc107;
-                font-size: 0.9em;
-            }
-          </style>
         </body>
       </html>
     `);
@@ -3532,14 +3472,23 @@ app.get('/my-reads', requireAuth, async (req, res) => {
   }
 });
 
-// API endpoint for personalized book recommendations
+// API endpoint for personalized book recommendations - ENHANCED VERSION
 app.get('/api/smart-recommendations', requireAuth, async (req, res) => {
   try {
+    console.log('🔍 Generating smart recommendations for user:', req.session.user.id);
+    
     const user = await User.findById(req.session.user.id);
     const myReads = user.myReads || [];
     const myBooks = user.myBooks || [];
 
-    // Extract genres and authors from user's books and reads
+    console.log(`📚 User has ${myReads.length} reads and ${myBooks.length} books`);
+
+    if (myReads.length === 0 && myBooks.length === 0) {
+      console.log('⚠️ No reading history found. Returning default recommendations.');
+      return res.json(await getDefaultRecommendations());
+    }
+
+    // Extract genres and authors
     const genres = new Set();
     const authors = new Set();
 
@@ -3553,79 +3502,231 @@ app.get('/api/smart-recommendations', requireAuth, async (req, res) => {
       if (book.author) authors.add(book.author);
     });
 
+    console.log(`🎯 User interests - Genres: ${Array.from(genres)}, Authors: ${Array.from(authors)}`);
+
     const recommendations = [];
 
-    // Get recommendations based on user's favorite authors
-    for (const author of Array.from(authors).slice(0, 3)) {
+    // 1. Recommendations from same authors
+    const authorPromises = Array.from(authors).slice(0, 3).map(async (author) => {
       try {
-        const authorBooks = await getIndianAuthorRecommendations(author, 2);
-        recommendations.push(...authorBooks.map(book => ({
+        console.log(`📖 Fetching books by author: ${author}`);
+        const authorBooks = await getIndianAuthorRecommendations(author, 3);
+        
+        // Filter out books user already has
+        const filteredBooks = authorBooks.filter(book => {
+          const alreadyHas = myReads.some(read => 
+            read.title.toLowerCase() === book.title.toLowerCase()
+          ) || myBooks.some(b => 
+            b.title.toLowerCase() === book.title.toLowerCase()
+          );
+          return !alreadyHas;
+        });
+
+        return filteredBooks.map(book => ({
           ...book,
           recommendationType: 'Same Author',
-          matchReason: 'By ' + author
-        })));
+          matchReason: `By ${author}`,
+          confidence: 'high'
+        }));
       } catch (error) {
-        console.error('Error fetching books by ' + author + ':', error);
+        console.error(`❌ Error fetching books by ${author}:`, error.message);
+        return [];
       }
-    }
+    });
 
-    // Get recommendations based on genres using Open Library
-    for (const genre of Array.from(genres).slice(0, 2)) {
+    const authorResults = await Promise.all(authorPromises);
+    authorResults.forEach(books => recommendations.push(...books));
+
+    // 2. Recommendations by genre (using Open Library)
+    const genrePromises = Array.from(genres).slice(0, 2).map(async (genre) => {
       try {
-        const response = await axios.get('https://openlibrary.org/search.json?subject=' + encodeURIComponent(genre) + '&limit=3');
+        console.log(`📚 Fetching books in genre: ${genre}`);
+        const response = await axios.get(
+          `https://openlibrary.org/search.json?subject=${encodeURIComponent(genre)}&limit=4&sort=rating`,
+          { timeout: 5000 }
+        );
 
         if (response.data.docs && response.data.docs.length > 0) {
-          const genreBooks = response.data.docs.map(book => {
+          return response.data.docs.map(book => {
+            // Skip if no title
+            if (!book.title) return null;
+
+            // Check if user already has this book
+            const alreadyHas = myReads.some(read => 
+              read.title.toLowerCase().includes(book.title.toLowerCase())
+            ) || myBooks.some(b => 
+              b.title.toLowerCase().includes(book.title.toLowerCase())
+            );
+
+            if (alreadyHas) return null;
+
             let coverImage = '';
             if (book.cover_i) {
-              coverImage = 'https://covers.openlibrary.org/b/id/' + book.cover_i + '-M.jpg';
+              coverImage = `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
             } else if (book.isbn && book.isbn[0]) {
-              coverImage = 'https://covers.openlibrary.org/b/isbn/' + book.isbn[0] + '-M.jpg';
+              coverImage = `https://covers.openlibrary.org/b/isbn/${book.isbn[0]}-M.jpg`;
             }
 
             return {
               title: book.title,
-              authors: book.author_name || [],
+              authors: book.author_name || ['Unknown'],
               coverImage: coverImage,
-              description: book.first_sentence ? book.first_sentence.join(' ') : '',
-              averageRating: book.ratings_average || 0,
+              description: book.first_sentence ? 
+                (Array.isArray(book.first_sentence) ? 
+                  book.first_sentence.join(' ') : 
+                  book.first_sentence
+                ).substring(0, 150) + '...' : 
+                'No description available',
+              averageRating: book.ratings_average || 3.5,
               ratingsCount: book.ratings_count || 0,
               recommendationType: 'Same Genre',
-              matchReason: genre + ' genre'
+              matchReason: `${genre} books you might like`,
+              confidence: 'medium'
             };
-          });
-          recommendations.push(...genreBooks);
+          }).filter(book => book !== null);
         }
+        return [];
       } catch (error) {
-        console.error('Error fetching ' + genre + ' books:', error);
+        console.error(`❌ Error fetching ${genre} books:`, error.message);
+        return [];
       }
-    }
+    });
 
-    // Add some popular Indian books
+    const genreResults = await Promise.all(genrePromises);
+    genreResults.forEach(books => recommendations.push(...books));
+
+    // 3. Add Indian literature recommendations
     try {
-      const indianBooks = await searchIndianBooks('', 5);
-      recommendations.push(...indianBooks.map(book => ({
+      console.log('🇮🇳 Fetching Indian book recommendations');
+      const indianBooks = await searchIndianBooks('', 4);
+      
+      const filteredIndianBooks = indianBooks.filter(book => {
+        const alreadyHas = myReads.some(read => 
+          read.title.toLowerCase().includes(book.title.toLowerCase())
+        ) || myBooks.some(b => 
+          b.title.toLowerCase().includes(book.title.toLowerCase())
+        );
+        return !alreadyHas;
+      }).map(book => ({
         ...book,
         recommendationType: 'Indian Author',
-        matchReason: 'Popular Indian literature'
-      })));
+        matchReason: 'Popular Indian literature',
+        confidence: 'medium'
+      }));
+      
+      recommendations.push(...filteredIndianBooks);
     } catch (error) {
-      console.error('Error fetching Indian books:', error);
+      console.error('❌ Error fetching Indian books:', error.message);
     }
 
-    // Remove duplicates and shuffle
-    const uniqueRecommendations = recommendations
-      .filter((book, index, self) =>
-        index === self.findIndex(b => b.title === book.title)
-      )
+    // 4. Remove duplicates
+    const uniqueRecommendations = [];
+    const seenTitles = new Set();
+
+    recommendations.forEach(book => {
+      if (book && book.title && !seenTitles.has(book.title.toLowerCase())) {
+        seenTitles.add(book.title.toLowerCase());
+        uniqueRecommendations.push(book);
+      }
+    });
+
+    // 5. Sort by confidence and limit to 12
+    const confidenceOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+    const sortedRecommendations = uniqueRecommendations
+      .sort((a, b) => {
+        // First by confidence
+        const confDiff = (confidenceOrder[b.confidence] || 0) - (confidenceOrder[a.confidence] || 0);
+        if (confDiff !== 0) return confDiff;
+        
+        // Then by rating
+        return (b.averageRating || 0) - (a.averageRating || 0);
+      })
       .slice(0, 12);
 
-    res.json(uniqueRecommendations);
+    console.log(`✅ Generated ${sortedRecommendations.length} recommendations`);
+
+    // If no recommendations, return defaults
+    if (sortedRecommendations.length === 0) {
+      console.log('⚠️ No personalized recommendations found, returning defaults');
+      return res.json(await getDefaultRecommendations());
+    }
+
+    res.json(sortedRecommendations);
+
   } catch (error) {
-    console.error('Error generating recommendations:', error);
-    res.status(500).json({ error: 'Failed to generate recommendations' });
+    console.error('💥 Error generating recommendations:', error);
+    
+    // Fallback to default recommendations
+    try {
+      const defaultRecs = await getDefaultRecommendations();
+      res.json(defaultRecs);
+    } catch (fallbackError) {
+      console.error('💥 Fallback also failed:', fallbackError);
+      res.status(500).json({ 
+        error: 'Failed to generate recommendations',
+        message: error.message 
+      });
+    }
   }
 });
+
+// Default recommendations fallback
+async function getDefaultRecommendations() {
+  console.log('📋 Getting default recommendations');
+  
+  const defaultBooks = [
+    {
+      title: 'The God of Small Things',
+      authors: ['Arundhati Roy'],
+      description: 'A richly textured novel about childhood experiences and the lasting impact of fateful decisions.',
+      averageRating: 4.2,
+      recommendationType: 'Popular Indian',
+      matchReason: 'Booker Prize Winner',
+      confidence: 'high'
+    },
+    {
+      title: 'A Suitable Boy',
+      authors: ['Vikram Seth'],
+      description: 'A monumental novel that explores post-independence India through the lens of four families.',
+      averageRating: 4.3,
+      recommendationType: 'Indian Classic',
+      matchReason: 'Modern Indian classic',
+      confidence: 'high'
+    },
+    {
+      title: 'The Palace of Illusions',
+      authors: ['Chitra Banerjee Divakaruni'],
+      description: 'The Mahabharata retold from Draupadi\'s perspective.',
+      averageRating: 4.4,
+      recommendationType: 'Mythological Fiction',
+      matchReason: 'Feminist retelling of epic',
+      confidence: 'medium'
+    },
+    {
+      title: 'The White Tiger',
+      authors: ['Aravind Adiga'],
+      description: 'A darkly comic novel about class struggle in modern India.',
+      averageRating: 4.0,
+      recommendationType: 'Contemporary Indian',
+      matchReason: 'Booker Prize Winner',
+      confidence: 'high'
+    }
+  ];
+
+  // Try to get covers for default books
+  for (let book of defaultBooks) {
+    try {
+      const bookData = await fetchBookCover(book.title, book.authors[0]);
+      if (bookData.coverImage) {
+        book.coverImage = bookData.coverImage;
+      }
+    } catch (error) {
+      // Continue without cover
+    }
+  }
+
+  return defaultBooks;
+}
 
 // API endpoint for Indian books discovery
 app.get('/api/indian-books', async (req, res) => {
@@ -3634,12 +3735,18 @@ app.get('/api/indian-books', async (req, res) => {
     res.json(indianBooks);
   } catch (error) {
     console.error('Error fetching Indian books:', error);
-    res.send(String.raw`
+    res.status(500).json({ error: 'Failed to fetch Indian books' });
+  }
+});
+
+// Add Read Form Page
+app.get('/add-read', requireAuth, (req, res) => {
+  res.send(String.raw`
     <!DOCTYPE html>
     <html lang="en">
     <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Log a Read - ReadCycle</title>
       <style>
         body {
@@ -3652,41 +3759,76 @@ app.get('/api/indian-books', async (req, res) => {
         }
         .container {
           max-width: 600px;
-          margin: 0 auto;
+          margin: 20px auto;
           background: white;
           border-radius: 15px;
           padding: 30px;
           box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
         }
-        h1 { color: #4CAF50; text-align: center; margin-bottom: 20px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; }
+        h1 { 
+          color: #4CAF50; 
+          text-align: center; 
+          margin-bottom: 30px;
+        }
+        .form-group { 
+          margin-bottom: 20px; 
+        }
+        label { 
+          display: block; 
+          margin-bottom: 8px; 
+          font-weight: 600; 
+          color: #444;
+        }
         input, select, textarea {
-          width: 100%; 
-          padding: 12px; 
-          border-radius: 8px; 
-          border: 1px solid #ddd; 
+          width: 100%;
+          padding: 12px 15px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
           font-size: 16px;
           box-sizing: border-box;
+          transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #4CAF50;
+          box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        textarea {
+          min-height: 120px;
+          resize: vertical;
         }
         button {
-          background: #4CAF50; 
-          color: white; 
-          border: none; 
-          padding: 12px 24px;
-          border-radius: 8px; 
-          cursor: pointer; 
-          font-size: 16px; 
-          width: 100%; 
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 14px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 600;
+          width: 100%;
           transition: background 0.3s;
+          margin-top: 10px;
         }
-        button:hover { background: #45a049; }
+        button:hover { 
+          background: #45a049; 
+        }
         .back-link { 
           display: block; 
           text-align: center; 
-          margin-top: 15px; 
+          margin-top: 20px; 
           color: #2575fc; 
-          text-decoration: none; 
+          text-decoration: none;
+          font-weight: 500;
+          transition: color 0.3s;
+        }
+        .back-link:hover {
+          color: #1a5cb8;
+          text-decoration: underline;
+        }
+        .required::after {
+          content: ' *';
+          color: #e53935;
         }
       </style>
     </head>
@@ -3695,11 +3837,11 @@ app.get('/api/indian-books', async (req, res) => {
         <h1>Log a Read Book</h1>
         <form id="add-read-form">
           <div class="form-group">
-            <label for="title">Book Title *</label>
+            <label for="title" class="required">Book Title</label>
             <input type="text" id="title" name="title" required>
           </div>
           <div class="form-group">
-            <label for="author">Author *</label>
+            <label for="author" class="required">Author</label>
             <input type="text" id="author" name="author" required>
           </div>
           <div class="form-group">
@@ -3728,63 +3870,141 @@ app.get('/api/indian-books', async (req, res) => {
             </select>
           </div>
           <div class="form-group">
-            <label for="ideas">My Ideas / Key Takeaways *</label>
-            <textarea id="ideas" name="ideas" rows="5" placeholder="What did you learn? What were the best parts?" required></textarea>
+            <label for="ideas" class="required">My Ideas / Key Takeaways</label>
+            <textarea id="ideas" name="ideas" placeholder="What did you learn? What were the best parts?" required></textarea>
           </div>
           <button type="submit">Save to My Reads</button>
         </form>
-        <a href="/my-reads" class="back-link">Cancel</a>
+        <a href="/my-reads" class="back-link">← Back to My Reads</a>
       </div>
       <script>
         document.getElementById('add-read-form').addEventListener('submit', async (e) => {
           e.preventDefault();
+          
+          const form = e.target;
           const formData = {
-            title: document.getElementById('title').value,
-            author: document.getElementById('author').value,
-            genre: document.getElementById('genre').value,
-            ideas: document.getElementById('ideas').value
+            title: form.title.value.trim(),
+            author: form.author.value.trim(),
+            genre: form.genre.value || 'Uncategorized',
+            ideas: form.ideas.value.trim()
           };
+
+          // Basic validation
+          if (!formData.title || !formData.author || !formData.ideas) {
+            alert('Please fill in all required fields');
+            return;
+          }
+
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalBtnText = submitBtn.textContent;
+          
           try {
-            const res = await fetch('/add-read', {
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            submitBtn.style.opacity = '0.8';
+            submitBtn.style.cursor = 'not-allowed';
+
+            const response = await fetch('/add-read', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+              },
               body: JSON.stringify(formData)
             });
-            if (res.ok) {
-              window.location.href = '/my-reads';
+
+            const result = await response.json();
+
+            if (response.ok) {
+              // Show success message and redirect
+              submitBtn.textContent = '✓ Saved!';
+              submitBtn.style.backgroundColor = '#4CAF50';
+              setTimeout(() => {
+                window.location.href = '/my-reads';
+              }, 1000);
             } else {
-              alert('Failed to add read.');
+              throw new Error(result.error || 'Failed to save read');
             }
-          } catch (err) {
-            console.error(err);
-            alert('An error occurred while saving your read.');
+          } catch (error) {
+            console.error('Error saving read:', error);
+            alert(error.message || 'An error occurred while saving your read');
+            submitBtn.textContent = originalBtnText;
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
           }
         });
       </script>
     </body>
     </html>
-    `);
-  }
+  `);
 });
 
+// Handle form submission for adding a read
 app.post('/add-read', requireAuth, async (req, res) => {
   try {
     const { title, author, genre, ideas } = req.body;
+    
+    // Input validation
+    if (!title || !author || !ideas) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Title, author, and ideas are required.' 
+      });
+    }
+    
     const newRead = {
       _id: new mongoose.Types.ObjectId(),
-      title,
-      author,
-      genre,
-      ideas, // Required
+      title: title.toString().trim(),
+      author: author.toString().trim(),
+      genre: (genre || 'Uncategorized').toString().trim(),
+      ideas: ideas.toString().trim(),
       readAt: new Date()
     };
-    await User.findByIdAndUpdate(req.session.user.id, {
-      $push: { myReads: newRead }
+    
+    // Update user's reads
+    const updatedUser = await User.findByIdAndUpdate(
+      req.session.user.id,
+      { $push: { myReads: newRead } },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found.'
+      });
+    }
+    
+    res.status(201).json({ 
+      success: true,
+      message: 'Book successfully added to your reads!',
+      read: newRead
     });
-    res.json({ message: 'Read logged successfully!' });
   } catch (error) {
     console.error('Error adding read:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'An error occurred while saving your read.'
+    });
+  }
+});
+
+// Delete Read Endpoint
+app.post('/delete-read', requireAuth, async (req, res) => {
+  try {
+    const { readId } = req.body;
+    const userId = req.session.user.id;
+
+    await User.findByIdAndUpdate(userId, {
+      $pull: { myReads: { _id: readId } }
+    });
+
+    res.json({ message: 'Read deleted successfully!' });
+  } catch (error) {
+    console.error('Error deleting read:', error);
+    res.status(500).json({ error: 'Failed to delete read' });
   }
 });
 
