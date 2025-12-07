@@ -1,23 +1,55 @@
-# ReadCycle - Book Sharing Platform
+# 📚 ReadCycle - Book Sharing Platform
 
-A modern web application that allows users to share and borrow books within their community. Built with Node.js, Express, and MongoDB.
+A modern web application that enables book lovers to share and borrow books within their community. Built with Node.js, Express, and MongoDB, ReadCycle promotes sustainable reading habits by connecting readers and their books.
 
-## Features
+## ✨ Features
 
-- **User Registration & Authentication**: Secure user registration with unique user ID, phone, and email validation
-- **Book Management**: Add, edit, and manage your book collection
-- **Book Discovery**: Search and filter books by genre, author, location, and condition
-- **Request System**: Request books from other users with a credit-based system
-- **Credit Economy**: Users start with 20 credits, spend 10 credits per book request
-- **Real-time Status Updates**: Track book availability and request status
+- **User Management**
+  - Secure registration and authentication
+  - Profile management
+  - Credit-based borrowing system
 
-## Tech Stack
+- **Book Management**
+  - Add books to your personal library
+  - Update book details and availability
+  - Track borrowed and lent books
 
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: bcrypt for password hashing, express-session for session management
-- **Frontend**: HTML, CSS, JavaScript (Vanilla)
+- **Discovery & Search**
+  - Browse books by genre, author, or location
+  - Advanced search with filters
+  - View book details and condition
 
+- **Borrowing System**
+  - Request books from other users
+  - Credit-based transactions
+  - Real-time request status updates
 
+- **Personalized Recommendations**
+  - Get book suggestions based on your reading history
+  - Discover new books tailored to your interests
+  - See what's popular in your community
 
+- **Reading Experience**
+  - Review books you've read
+  - Track your reading progress
+  - Maintain a reading history
+  - Create reading list
 
+## 🚀 Tech Stack
+
+- **Frontend**: 
+  - HTML5, CSS3, JavaScript (ES6+)
+  - Responsive design for all devices
+
+- **Backend**: 
+  - Node.js with Express.js
+  - RESTful API architecture
+
+- **Database**:
+  - MongoDB with Mongoose ODM
+  - Data validation and modeling
+
+- **Authentication**:
+  - bcrypt for password hashing
+  - JWT for secure authentication
+  - Session management
