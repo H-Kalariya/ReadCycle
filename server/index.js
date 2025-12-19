@@ -49,15 +49,15 @@ const allowedOrigins = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
     'http://127.0.0.1:5175',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'https://' + process.env.RENDER_EXTERNAL_HOSTNAME // Automatically get Render domain
 ];
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.log('❌ CORS Blocked:', origin);
-            callback(null, false); // Don't throw error, just don't allow
+            callback(null, false);
         }
     },
     credentials: true,
@@ -79,8 +79,9 @@ app.use(session({
     }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Needed for cross-domain on Render
         httpOnly: true,
-        maxAge: null // Session cookie - expires when browser closes
+        maxAge: 24 * 60 * 60 * 1000 // 1 day instead of null for better stability
     }
 }));
 
@@ -533,6 +534,16 @@ app.post('/api/reject-request', requireAuth, async (req, res) => {
         res.json({ message: 'Request rejected' });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Serve Static Files from React Frontend
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Catch-all route to serve the React index.html for any non-API routes
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, '../dist/index.html'));
     }
 });
 
