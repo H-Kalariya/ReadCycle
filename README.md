@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# 📚 ReadCycle
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**ReadCycle** is a modern, full-stack peer-to-peer book exchange platform designed to build a thriving community of readers. Share your library, discover new stories, and track your reading journey—all in one place.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- **🔄 Community Exchange**: Seamlessly request books from other users and manage your own collection.
+- **💎 Credit System**: A balanced economy where sharing books earns you credits, which can be used to request new ones.
+- **🔍 Smart Browse**: Powerful search and filtering to help you find exactly what you're looking for.
+- **📖 Reading Journey**: Log your finished books, save key takeaways, and build a digital legacy of your reading.
+- **🎯 Personalized Picks**: Smart recommendations based on your interests and reading history.
+- **⚡ Premium UI**: A fast, responsive, and aesthetically pleasing interface built with modern animations.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Frontend**: React 19, TypeScript, Vite
+- **Styling**: Tailwind CSS, Framer Motion (Animations)
+- **Backend**: Node.js, Express
+- **Database**: MongoDB with Mongoose ODM
+- **Icons**: Heroicons
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🚀 Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Clone the repository
+```bash
+git clone https://github.com/H-Kalariya/ReadCycle.git
+cd ReadCycle
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Install Dependencies
+```bash
+# Install frontend dependencies
+npm install
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Install backend dependencies
+cd server
+npm install
+cd ..
 ```
+
+### 3. Environment Setup
+Create a `.env` file in the `server` directory and add your MongoDB URI:
+```env
+MONGODB_URI=your_mongodb_connection_string
+SESSION_SECRET=your_secret_key
+```
+
+### 4. Run the Application
+```bash
+# From the root directory
+npm run dev
+```
+The app will be available at `http://localhost:5173` (Frontend) and `http://localhost:3020` (Backend).
+
+---
+
+## 🤝 Contributing
+Contributions are welcome! Feel free to open an issue or submit a pull request.
+
+---
+
+## 📄 License
+Distributed under the MIT License.
+
+---
+*Happy Reading!* 📖✨
