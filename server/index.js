@@ -358,9 +358,27 @@ app.post('/api/requests', requireAuth, async (req, res) => {
 });
 
 // Recommendations Logic
+let cachedTrendingBooks = null;
+let lastCacheUpdate = 0;
+const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
 async function getDefaultRecommendations() {
-    const books = await searchIndianBooks('popular fiction', 12);
-    return books.map(b => ({ ...b, recommendationType: 'Trending', matchReason: 'Popular in India' }));
+    const now = Date.now();
+    if (cachedTrendingBooks && (now - lastCacheUpdate < CACHE_DURATION)) {
+        console.log("📚 Returning cached trending recommendations");
+        return cachedTrendingBooks;
+    }
+
+    try {
+        console.log("🌐 Fetching fresh trending recommendations from Google Books");
+        const books = await searchIndianBooks('popular fiction', 12);
+        cachedTrendingBooks = books.map(b => ({ ...b, recommendationType: 'Trending', matchReason: 'Popular in India' }));
+        lastCacheUpdate = now;
+        return cachedTrendingBooks;
+    } catch (error) {
+        console.error("❌ Failed to fetch trending books:", error);
+        return cachedTrendingBooks || []; // Return old cache if available
+    }
 }
 
 app.get('/api/recommendations', async (req, res) => {
