@@ -61,9 +61,6 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Recommendations Section */}
-            <FeaturedRecs />
-
             {/* Stats/Features Section */}
             <section className="py-24 bg-white">
                 <div className="container mx-auto px-4">
@@ -113,84 +110,7 @@ interface Recommendation {
 }
 
 const FeaturedRecs = () => {
-    const [recs, setRecs] = useState<Recommendation[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchRecs = async () => {
-            try {
-                // We attempt to fetch recommendations (works if logged in, falls back to trending)
-                const res = await api.get('/recommendations');
-                setRecs(res.data.slice(0, 4));
-            } catch (err) {
-                console.error("Home recs fetch failed", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRecs();
-    }, []);
-
-    return (
-        <section className="py-24 bg-secondary/10">
-            <div className="container mx-auto px-4">
-                <div className="flex items-center justify-between mb-12">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <SparklesIcon className="h-5 w-5 text-accent" />
-                            <span className="text-sm font-bold text-accent uppercase tracking-widest">
-                                {loading ? 'Finding books...' : 'Selected for you'}
-                            </span>
-                        </div>
-                        <h2 className="text-3xl font-serif font-bold text-primary-dark">
-                            {loading ? 'Curating Collection' : 'Trending Now'}
-                        </h2>
-                    </div>
-                    {!loading && (
-                        <Link to="/browse" className="text-primary font-bold flex items-center gap-2 hover:translate-x-1 transition-transform">
-                            View More <ArrowRightIcon className="h-4 w-4" />
-                        </Link>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {loading ? (
-                        // Skeleton Loader
-                        [...Array(4)].map((_, idx) => (
-                            <div key={idx} className="bg-white/50 p-4 rounded-3xl animate-pulse">
-                                <div className="aspect-[2/3] bg-gray-200 rounded-2xl mb-4"></div>
-                                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                            </div>
-                        ))
-                    ) : (
-                        recs.map((book, idx) => (
-                            <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="bg-white p-4 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 group"
-                            >
-                                <div className="aspect-[2/3] rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition-all">
-                                    {book.coverImage ? (
-                                        <img src={book.coverImage} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" alt={book.title} />
-                                    ) : (
-                                        <div className="w-full h-full bg-secondary/30 flex items-center justify-center">
-                                            <BookOpenIcon className="h-10 w-10 text-gray-300" />
-                                        </div>
-                                    )}
-                                </div>
-                                <h3 className="font-serif font-bold text-primary-dark truncate mb-1">{book.title}</h3>
-                                <p className="text-xs text-text-light truncate">{book.authors?.join(', ') || 'Unknown Author'}</p>
-                            </motion.div>
-                        ))
-                    )}
-                </div>
-            </div>
-        </section>
-    );
+    return null; // Trending Now section removed as requested
 };
 
 export default Home;
