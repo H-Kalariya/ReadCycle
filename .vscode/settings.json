@@ -1,0 +1,27 @@
+{
+    "css.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore",
+    "less.lint.unknownAtRules": "ignore",
+    "files.associations": {
+        "*.css": "tailwindcss"
+    },
+    "tailwindCSS.experimental.classRegex": [
+        [
+            "@layer\\s+components\\s*\\{[^}]*\\.([^\\s{]+)",
+            "([\\w-]+)"
+        ]
+    ],
+    "css.customData": [
+        ".vscode/tailwind.json"
+    ],
+    "editor.quickSuggestions": {
+        "strings": true,
+        "comments": true,
+        "other": true
+    },
+    "tailwindCSS.includeLanguages": {
+        "plaintext": "html"
+    },
+    "tailwindCSS.experimental.configFile": "tailwind.config.js",
+    "tailwindCSS.validate": true
+}
