@@ -59,6 +59,18 @@ const MyBooks = () => {
         }
     };
 
+    const handleDelete = async (bookId: string) => {
+        if (!window.confirm('Are you sure you want to delete this book?')) return;
+
+        try {
+            await api.delete(`/books/${bookId}`);
+            toast.success('Book deleted successfully');
+            fetchBooks();
+        } catch (err: any) {
+            toast.error(err.response?.data?.error || 'Failed to delete book');
+        }
+    };
+
     return (
         <div className="pt-24 pb-12 min-h-screen bg-secondary/20">
             <div className="container px-4 mx-auto">
@@ -142,7 +154,10 @@ const MyBooks = () => {
                                         <span className="text-xs font-medium text-primary bg-primary/5 px-2 py-1 rounded">
                                             {book.condition}
                                         </span>
-                                        <button className="p-2 text-danger hover:bg-danger/5 rounded-lg transition-colors">
+                                        <button
+                                            onClick={() => handleDelete(book._id)}
+                                            className="p-2 text-danger hover:bg-danger/5 rounded-lg transition-colors"
+                                        >
                                             <TrashIcon className="h-5 w-5" />
                                         </button>
                                     </div>

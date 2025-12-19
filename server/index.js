@@ -250,6 +250,21 @@ app.get('/api/my-books', requireAuth, async (req, res) => {
     }
 });
 
+app.delete('/api/books/:id', requireAuth, async (req, res) => {
+    try {
+        const bookId = req.params.id;
+        const userId = req.session.user.id;
+
+        await User.findByIdAndUpdate(userId, {
+            $pull: { myBooks: { _id: new mongoose.Types.ObjectId(bookId) } }
+        });
+
+        res.json({ message: "Book deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/books/:id', async (req, res) => {
     try {
         const bookId = req.params.id;
@@ -523,7 +538,13 @@ app.post('/api/accept-request', requireAuth, async (req, res) => {
 
             await User.updateOne({ _id: request.requesterId }, { $inc: { credits: -10 } }, { session });
             await User.updateOne({ _id: userIdObj }, { $inc: { credits: 10 } }, { session });
-            await User.updateOne({ _id: userIdObj, 'myBooks._id': request.bookId }, { $set: { 'myBooks.$.status': 'borrowed' } }, { session });
+
+            // Remove book from owner's collection as it's now with the requester
+            await User.updateOne(
+                { _id: userIdObj },
+                { $pull: { myBooks: { _id: request.bookId } } },
+                { session }
+            );
 
             await session.commitTransaction();
             res.json({ message: 'Request accepted successfully!' });
