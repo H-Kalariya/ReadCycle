@@ -6,6 +6,7 @@ interface User {
     userid: string;
     fullname: string;
     email: string;
+    credits: number;
 }
 
 interface AuthContextType {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bars3Icon, XMarkIcon, BookOpenIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon, BookOpenIcon, UserCircleIcon, ArrowRightOnRectangleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
@@ -57,9 +57,17 @@ const Navbar = () => {
                 <div className="hidden md:flex items-center gap-4">
                     {user ? (
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-sm font-medium text-text">
-                                <UserCircleIcon className="h-5 w-5 text-primary" />
-                                <span>{user.fullname}</span>
+                            <div className="flex items-center gap-4 bg-secondary/50 px-3 py-1.5 rounded-xl border border-secondary">
+                                <div className="flex items-center gap-2 text-sm font-medium text-text">
+                                    <UserCircleIcon className="h-5 w-5 text-primary" />
+                                    <span>{user.fullname}</span>
+                                </div>
+                                <div className="h-4 w-px bg-secondary-dark/20"></div>
+                                <div className="flex items-center gap-1.5">
+                                    <SparklesIcon className="h-4 w-4 text-accent" />
+                                    <span className="text-sm font-bold text-primary-dark">{user.credits}</span>
+                                    <span className="text-[10px] uppercase tracking-wider text-text-light font-bold">Credits</span>
+                                </div>
                             </div>
                             <button
                                 onClick={logout}
@@ -118,15 +126,29 @@ const Navbar = () => {
                             ))}
                             <div className="pt-4 flex flex-col gap-4 border-t border-gray-100">
                                 {user ? (
-                                    <button
-                                        onClick={() => {
-                                            logout();
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        className="flex items-center gap-2 text-lg font-medium text-danger"
-                                    >
-                                        Logout
-                                    </button>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center justify-between bg-secondary/50 p-4 rounded-2xl border border-secondary shadow-sm">
+                                            <div className="flex items-center gap-2 font-medium text-text">
+                                                <UserCircleIcon className="h-6 w-6 text-primary" />
+                                                <span>{user.fullname}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <SparklesIcon className="h-5 w-5 text-accent" />
+                                                <span className="text-lg font-bold text-primary-dark">{user.credits}</span>
+                                                <span className="text-[10px] uppercase tracking-wider text-text-light font-bold">Credits</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                logout();
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                            className="flex items-center gap-2 p-4 text-lg font-medium text-danger bg-danger/5 rounded-2xl border border-danger/10"
+                                        >
+                                            <ArrowRightOnRectangleIcon className="h-6 w-6" />
+                                            Logout
+                                        </button>
+                                    </div>
                                 ) : (
                                     <>
                                         <Link

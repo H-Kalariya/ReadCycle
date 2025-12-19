@@ -202,6 +202,63 @@ const MyReads = () => {
                         )}
                     </AnimatePresence>
                 )}
+                <div className="mt-20 border-t border-gray-100 pt-16">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                        {/* Tech Stack */}
+                        <section>
+                            <h2 className="text-3xl font-serif font-bold text-primary-dark mb-8 flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <ArrowPathIcon className="h-6 w-6 text-primary" />
+                                </div>
+                                Built with Modern Tech
+                            </h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {[
+                                    { name: 'React', desc: 'UI Library' },
+                                    { name: 'TypeScript', desc: 'Type Safety' },
+                                    { name: 'Tailwind CSS', desc: 'Modern Styling' },
+                                    { name: 'Node.js', desc: 'Server Env' },
+                                    { name: 'Express', desc: 'REST API' },
+                                    { name: 'MongoDB', desc: 'Database' },
+                                    { name: 'Mongoose', desc: 'ODM Layer' },
+                                    { name: 'Framer Motion', desc: 'Animations' },
+                                    { name: 'Check-GPT', desc: 'Smart Recs' }
+                                ].map((tech) => (
+                                    <div key={tech.name} className="bg-white p-4 rounded-2xl border border-gray-50 shadow-sm hover:shadow-md transition-shadow">
+                                        <h4 className="font-bold text-primary-dark text-sm">{tech.name}</h4>
+                                        <p className="text-[10px] text-text-light">{tech.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Features */}
+                        <section>
+                            <h2 className="text-3xl font-serif font-bold text-primary-dark mb-8 flex items-center gap-3">
+                                <div className="p-2 bg-accent/10 rounded-lg">
+                                    <SparklesIcon className="h-6 w-6 text-accent" />
+                                </div>
+                                Platform Features
+                            </h2>
+                            <div className="space-y-4">
+                                {[
+                                    { title: 'Book Exchange', desc: 'Easily list your books and request ones you want to read from the community.' },
+                                    { title: 'Credit System', desc: 'Earn 10 credits for sharing a book and spend 10 to request a new one.' },
+                                    { title: 'Smart Discovery', desc: 'Get personalized book recommendations based on your reading history and interests.' },
+                                    { title: 'Journey Tracking', desc: 'Log your finished books and store key takeaways to build your digital library.' }
+                                ].map((feat) => (
+                                    <div key={feat.title} className="bg-white p-5 rounded-2xl border border-gray-50 shadow-sm flex gap-4">
+                                        <div className="w-1.5 h-auto bg-primary/20 rounded-full shrink-0"></div>
+                                        <div>
+                                            <h4 className="font-bold text-primary-dark mb-1">{feat.title}</h4>
+                                            <p className="text-sm text-text-light leading-relaxed">{feat.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                </div>
             </div>
 
             {/* Log Read Modal */}
