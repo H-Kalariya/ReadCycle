@@ -25,20 +25,13 @@ app.use((req, res, next) => {
 // Connect to MongoDB
 const mongoURI = process.env.MONGODB_URI || "mongodb+srv://HetviK2208:HetviK9909855402@cluster0.ih1tunm.mongodb.net/ReadCycle";
 mongoose.connect(mongoURI)
-    .then(async () => {
+    .then(() => {
         console.log(`✅ MongoDB connected successfully to ${mongoose.connection.name}`);
-        // Clear sessions on server start as requested
-        try {
-            const collections = await mongoose.connection.db.listCollections({ name: 'sessions' }).toArray();
-            if (collections.length > 0) {
-                await mongoose.connection.db.collection('sessions').deleteMany({});
-                console.log("🧹 Previous sessions cleared from database.");
-            }
-        } catch (sessionErr) {
-            console.log("⚠️ Note: Could not clear sessions (might be first run)");
-        }
     })
     .catch(err => console.error("❌ MongoDB connection error:", err));
+
+// Trust the Render proxy for secure cookies
+app.set('trust proxy', 1);
 
 // Middleware
 const allowedOrigins = [
