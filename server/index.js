@@ -71,10 +71,10 @@ app.use(session({
         autoRemove: 'native'
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Needed for cross-domain on Render
+        secure: process.env.NODE_ENV === 'production' || !!process.env.RENDER,
+        sameSite: 'lax', // Better for same-domain deployment
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day instead of null for better stability
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
 
